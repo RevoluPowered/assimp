@@ -39,12 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
 */
-#ifndef ASSIMP_BUILD_NO_GLOBALSCALE_PROCESS
-
+//#ifndef ASSIMP_BUILD_NO_GLOBALSCALE_PROCESS
+#ifndef ASSIMP_SCALE_PROCESS_H
+#define ASSIMP_SCALE_PROCESS_H
 #include "ScaleProcess.h"
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
 
 namespace Assimp {
 
@@ -52,6 +54,7 @@ ScaleProcess::ScaleProcess()
 : BaseProcess()
 , mScale( AI_CONFIG_GLOBAL_SCALE_FACTOR_DEFAULT ) {
     // empty
+    printf("Scale process compiled into app\n");
 }
 
 ScaleProcess::~ScaleProcess() {
@@ -75,6 +78,10 @@ void ScaleProcess::SetupProperties( const Importer* pImp ) {
 }
 
 void ScaleProcess::Execute( aiScene* pScene ) {
+    printf("Attempting to scale scene\n");
+
+    assert(nullptr != pScene);
+    assert(nullptr != pScene->mRootNode);
     if ( nullptr == pScene ) {
         return;
     }
@@ -82,22 +89,37 @@ void ScaleProcess::Execute( aiScene* pScene ) {
     if ( nullptr == pScene->mRootNode ) {
         return;
     }
-
-    traverseNodes( pScene->mRootNode );
+    
+    traverseNodes( pScene->mRootNode, true );
 }
 
-void ScaleProcess::traverseNodes( aiNode *node ) {
-    applyScaling( node );
+void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
+
+    printf("Scale applied for node! %s\n", node->mName.C_Str());
+    // apply to parent
+
+    //if(!first)
+    {
+        applyScaling( node );
+    }
+
+    for( size_t i = 0; i < node->mNumChildren; i++)
+    {
+        aiNode *childNode = node->mChildren[i];
+        // recurse into the tree until we are done!
+        traverseNodes( childNode ); 
+    }
 }
 
 void ScaleProcess::applyScaling( aiNode *currentNode ) {
     if ( nullptr != currentNode ) {
-        currentNode->mTransformation.a4 *= mScale;
-        currentNode->mTransformation.b4 *= mScale;
-        currentNode->mTransformation.c4 *= mScale;
+        currentNode->mTransformation.a1 *= mScale;
+        currentNode->mTransformation.b1 *= mScale;
+        currentNode->mTransformation.c3 *= mScale;
     }
 }
 
 } // Namespace Assimp
 
-#endif // !! ASSIMP_BUILD_NO_GLOBALSCALE_PROCESS
+//#endif // !! ASSIMP_BUILD_NO_GLOBALSCALE_PROCESS
+#endif // ASSIMP_SCALE_PROCESS_H

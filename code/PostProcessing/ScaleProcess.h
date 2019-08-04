@@ -78,7 +78,7 @@ public:
     virtual void Execute( aiScene* pScene );
 
 private:
-    void traverseNodes( aiNode *currentNode );
+    void traverseNodes( aiNode *currentNode, bool first );
     void applyScaling( aiNode *currentNode );
 
 private:
