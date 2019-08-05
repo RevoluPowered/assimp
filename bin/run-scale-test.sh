@@ -1,1 +1,2 @@
-./assimp export Robot.FBX testexport.fbx -jiv -icl -lbw -slm -tri -guv -sbpt -fid -tuv -fi -om -embtex -gs
+./assimp export Robot.FBX testexport.fbx -lbw -slm -guv -embtex -gs
+./assimp export BIRD.fbx testexport2.fbx -lbw -slm -guv -embtex -gs
