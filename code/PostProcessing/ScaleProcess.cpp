@@ -74,12 +74,14 @@ bool ScaleProcess::IsActive( unsigned int pFlags ) const {
 }
 
 void ScaleProcess::SetupProperties( const Importer* pImp ) {
-    mScale = pImp->GetPropertyFloat( AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0 );
+    // Never default to zero scale
+    mScale = pImp->GetPropertyFloat( AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1 );
 }
 
 void ScaleProcess::Execute( aiScene* pScene ) {
-    printf("Attempting to scale scene\n");
+    printf("Attempting to scale scene %f\n", mScale);
 
+    assert(mScale != 0);
     assert(nullptr != pScene);
     assert(nullptr != pScene->mRootNode);
     if ( nullptr == pScene ) {
@@ -98,16 +100,25 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
     printf("Scale applied for node! %s\n", node->mName.C_Str());
     // apply to parent
 
-    //if(!first)
+
+    if(!first)
     {
-        applyScaling( node );
+        //applyScaling( node );
+        aiMatrix4x4 &ref = node->mTransformation;
+
+        aiMatrix4x4::Scaling(aiVector3D(mScale,mScale,mScale), ref);
+        aiVector3D position, scaling, rotation;
+
+        ref.Decompose(scaling, rotation, position);
+        aiMatrix4x4::Translation( aiVector3D(mScale*position.x, mScale*position.y, mScale*position.z), ref );
     }
+
+    
 
     for( size_t i = 0; i < node->mNumChildren; i++)
     {
-        aiNode *childNode = node->mChildren[i];
         // recurse into the tree until we are done!
-        traverseNodes( childNode ); 
+        traverseNodes( node->mChildren[i] ); 
     }
 }
 
