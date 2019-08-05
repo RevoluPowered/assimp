@@ -1800,9 +1800,9 @@ void FBXExporter::WriteObjects ()
                     break;
                 }
             }
-            /*if (!b) {
+            if (!b) {
                 no_offset_matrix.insert(bone_node);
-            }*/
+            }
 
             // start the subdeformer node
             const int64_t subdeformer_uid = generate_uid();
@@ -1856,10 +1856,10 @@ void FBXExporter::WriteObjects ()
                 epsilon = epsilon_custom;
             bool bone_xform_okay = true;
             
-            /*if (b && ! tr.Equal(b->mOffsetMatrix, epsilon)) {
+            if (b && ! tr.Equal(b->mOffsetMatrix, epsilon)) {
                 not_in_bind_pose.insert(b);
                 bone_xform_okay = false;
-            }*/
+            }
 
             // if we have a bone we should use the mOffsetMatrix,
             // otherwise try to just use the calculated transform.
