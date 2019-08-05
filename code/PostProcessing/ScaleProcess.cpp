@@ -102,9 +102,15 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
 
 
     //if(!first)
+    if(node->mName != aiString("Armature") && node->mName != aiString("armature"))
     {
         applyScaling( node );
     }    
+    else
+    {
+        printf("do not scale armature - breaks things\n");
+    }
+    
 
     for( size_t i = 0; i < node->mNumChildren; i++)
     {
