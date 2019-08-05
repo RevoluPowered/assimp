@@ -94,6 +94,8 @@ const Object* LazyObject::Get(bool dieOnError)
     // is no root object int he fbx file - it is just referenced
     // with id 0.
     if(id == 0L) {
+        printf("root node created: %ld\n", id);
+        
         object.reset(new Object(id, element, "Model::RootNode"));
         return object.get();
     }
@@ -605,7 +607,7 @@ std::vector<const Connection*> Document::GetConnectionsSequenced(uint64_t id, bo
         ).GetElement().KeyToken();
 
         const char* obtype = key.begin();
-
+        //printf("obtype: %s\n", obtype);
         for (size_t i = 0; i < c; ++i) {
             ai_assert(classnames[i]);
             if(static_cast<size_t>(std::distance(key.begin(),key.end())) == lengths[i] && !strncmp(classnames[i],obtype,lengths[i])) {
