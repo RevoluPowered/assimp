@@ -75,7 +75,7 @@ bool ScaleProcess::IsActive( unsigned int pFlags ) const {
 
 void ScaleProcess::SetupProperties( const Importer* pImp ) {
     // Never default to zero scale
-    mScale = pImp->GetPropertyFloat( AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1 );
+    mScale = 0.1f;
 }
 
 void ScaleProcess::Execute( aiScene* pScene ) {
@@ -103,17 +103,8 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
 
     if(!first)
     {
-        //applyScaling( node );
-        aiMatrix4x4 &ref = node->mTransformation;
-
-        aiMatrix4x4::Scaling(aiVector3D(mScale,mScale,mScale), ref);
-        aiVector3D position, scaling, rotation;
-
-        ref.Decompose(scaling, rotation, position);
-        aiMatrix4x4::Translation( aiVector3D(mScale*position.x, mScale*position.y, mScale*position.z), ref );
-    }
-
-    
+        applyScaling( node );
+    }    
 
     for( size_t i = 0; i < node->mNumChildren; i++)
     {
@@ -124,9 +115,9 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
 
 void ScaleProcess::applyScaling( aiNode *currentNode ) {
     if ( nullptr != currentNode ) {
-        currentNode->mTransformation.a1 *= mScale;
-        currentNode->mTransformation.b1 *= mScale;
-        currentNode->mTransformation.c3 *= mScale;
+        currentNode->mTransformation.a4 *= mScale;
+        currentNode->mTransformation.b4 *= mScale;
+        currentNode->mTransformation.c4 *= mScale;
     }
 }
 
