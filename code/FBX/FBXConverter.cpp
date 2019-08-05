@@ -946,7 +946,13 @@ namespace Assimp {
 
             // one material per mesh maps easily to aiMesh. Multiple material
             // meshes need to be split.
-            const MatIndexArray& mindices = mesh.GetMaterialIndices();
+
+            // todo: fix me - this is broken 
+            // this splits mesh into more than one mesh which is really 
+            // not the correct way to handle this, so i will need to fix this later
+            // this restores the same heirarchy
+            
+            /*const MatIndexArray& mindices = mesh.GetMaterialIndices();
             if (doc.Settings().readMaterials && !mindices.empty()) {
                 const MatIndexArray::value_type base = mindices[0];
                 for (MatIndexArray::value_type index : mindices) {
@@ -954,7 +960,9 @@ namespace Assimp {
                         return ConvertMeshMultiMaterial(mesh, model, node_global_transform, nd);
                     }
                 }
-            }
+            }*/
+
+            printf("returning single mesh\n");
 
             // faster code-path, just copy the data
             temp.push_back(ConvertMeshSingleMaterial(mesh, model, node_global_transform, nd));
@@ -968,10 +976,15 @@ namespace Assimp {
 
             const std::vector<aiVector3D>& vertices = line.GetVertices();
             const std::vector<int>& indices = line.GetIndices();
+
+
+            printf("post New empty mesh for node: %s\n", nd.mName.C_Str());
             if (vertices.empty() || indices.empty()) {
                 FBXImporter::LogWarn("ignoring empty line: " + line.Name());
                 return temp;
             }
+
+            printf("New empty mesh for node: %s\n", nd.mName.C_Str());
 
             aiMesh* const out_mesh = SetupEmptyMesh(line, nd);
             out_mesh->mPrimitiveTypes |= aiPrimitiveType_LINE;
@@ -3534,9 +3547,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             out->mMetaData->Set(14, "CustomFrameRate", doc.GlobalSettings().CustomFrameRate());
         }
 
-        void FBXConverter::ConvertToUnitScale( FbxUnit unit ) {
-            if (mCurrentUnit == unit) {
-                return;
+
 
         /*void FBXConverter::ScaleMatrixByReal( ai_real real, aiMatrix4x4& out )
         {
