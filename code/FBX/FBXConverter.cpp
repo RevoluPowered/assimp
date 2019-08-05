@@ -3647,13 +3647,13 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                         for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
                         {
                             aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
-                            vectorKey.mValue *= scale;
+                            vectorKey.mValue *= 1.0f/scale;
                         }
 
                         for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
                         {
-                           // aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
-                           // vectorKey.mValue *= 1.0f/scale;
+                           aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
+                           vectorKey.mValue *= 1.0f/scale;
                         }
 
                     }
