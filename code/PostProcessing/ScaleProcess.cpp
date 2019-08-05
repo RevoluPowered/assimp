@@ -75,7 +75,7 @@ bool ScaleProcess::IsActive( unsigned int pFlags ) const {
 
 void ScaleProcess::SetupProperties( const Importer* pImp ) {
     // Never default to zero scale
-    mScale = 0.1f;
+    mScale = 1.0f;
 }
 
 void ScaleProcess::Execute( aiScene* pScene ) {
@@ -91,7 +91,7 @@ void ScaleProcess::Execute( aiScene* pScene ) {
     if ( nullptr == pScene->mRootNode ) {
         return;
     }
-    
+
     traverseNodes( pScene->mRootNode, true );
 }
 
@@ -101,7 +101,7 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
     // apply to parent
 
 
-    if(!first)
+    //if(!first)
     {
         applyScaling( node );
     }    
@@ -111,6 +111,8 @@ void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
         // recurse into the tree until we are done!
         traverseNodes( node->mChildren[i] ); 
     }
+
+    
 }
 
 void ScaleProcess::applyScaling( aiNode *currentNode ) {
