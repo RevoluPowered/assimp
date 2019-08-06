@@ -81,6 +81,8 @@ void ScaleProcess::SetupProperties( const Importer* pImp ) {
 void ScaleProcess::Execute( aiScene* pScene ) {
     printf("Attempting to scale scene %f\n", mScale);
 
+    
+
     assert(mScale != 0);
     assert(nullptr != pScene);
     assert(nullptr != pScene->mRootNode);
@@ -98,18 +100,19 @@ void ScaleProcess::Execute( aiScene* pScene ) {
 void ScaleProcess::traverseNodes( aiNode *node, bool first = false ) {
 
     printf("Scale applied for node! %s\n", node->mName.C_Str());
-    // apply to parent
 
+    // apply to parent
+    applyScaling( node );
 
     //if(!first)
-    if(node->mName != aiString("Armature") && node->mName != aiString("armature"))
-    {
-        applyScaling( node );
-    }    
-    else
-    {
-        printf("do not scale armature - breaks things\n");
-    }
+    //if(node->mName != aiString("Armature") && node->mName != aiString("armature"))
+    // {
+       
+    // }    
+    // else
+    // {
+    //     printf("do not scale armature - breaks things\n");
+    // }
     
 
     for( size_t i = 0; i < node->mNumChildren; i++)
