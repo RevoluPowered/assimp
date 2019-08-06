@@ -3423,7 +3423,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             if (rotation.size()) {
                 InterpolateKeys(out_quat, times, rotation, def_rotation, maxTime, minTime, order);
             }
-            else {
+            else { // todo: please fix anim_fps scaling
                 for (size_t i = 0; i < times.size(); ++i) {
                     out_quat[i].mTime = CONVERT_FBX_TIME(times[i]) * anim_fps;
                     out_quat[i].mValue = EulerToQuaternion(def_rotation, order);
@@ -3648,17 +3648,17 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     for( unsigned int x = 0; x < anim->mNumChannels; x++)
                     {                        
                         aiNodeAnim * nodeAnim = anim->mChannels[x];
-                        for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
-                        {
-                            aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
-                            vectorKey.mValue *= 1.0f/scale;
-                        }
+                        // for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
+                        // {
+                        //     //aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
+                        //     //vectorKey.mValue *= 1.0f/scale;
+                        // }
 
-                        for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
-                        {
-                           aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
-                           vectorKey.mValue *= 1.0f/scale;
-                        }
+                        // for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
+                        // {
+                        //    aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
+                        //    vectorKey.mValue = 
+                        // }
 
                     }
                 }              
@@ -3675,23 +3675,23 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     //os *= scale;
                 }
 
-                for(unsigned int x = 0; x < mesh->mNumBones; ++x) {
-                    aiBone* bone = mesh->mBones[x];
-                    aiMatrix4x4 &ref = bone->mOffsetMatrix;
-                    ref.a4 *= scale;
-                    ref.b4 *= scale;
-                    ref.c4 *= scale;
-                }
+                // for(unsigned int x = 0; x < mesh->mNumBones; ++x) {
+                //     aiBone* bone = mesh->mBones[x];
+                //     aiMatrix4x4 &ref = bone->mOffsetMatrix;
+                //     ref.a4 *= scale;
+                //     ref.b4 *= scale;
+                //     ref.c4 *= scale;
+                // }
                 
-                for (unsigned int x = 0; x < mesh->mNumAnimMeshes; ++x) {
-                    aiAnimMesh *morphMesh = mesh->mAnimMeshes[x];
-                    if (morphMesh->HasPositions()) {
-                        for (unsigned int i = 0; i < morphMesh->mNumVertices; ++i) {
-                            aiVector3D &pos = morphMesh->mVertices[i];
-                            pos *= scale;
-                        }
-                    }
-                }
+                // for (unsigned int x = 0; x < mesh->mNumAnimMeshes; ++x) {
+                //     aiAnimMesh *morphMesh = mesh->mAnimMeshes[x];
+                //     if (morphMesh->HasPositions()) {
+                //         for (unsigned int i = 0; i < morphMesh->mNumVertices; ++i) {
+                //             aiVector3D &pos = morphMesh->mVertices[i];
+                //             pos *= scale;
+                //         }
+                //     }
+                // }
             }
         }
 
