@@ -193,7 +193,7 @@ private:
 
     // ------------------------------------------------------------------------------------------------
     void ConvertModel(const Model& model, aiNode& nd, const aiMatrix4x4& node_global_transform);
-    
+    void ConvertBones(const Model& model, const std::string &orig_name);
     // ------------------------------------------------------------------------------------------------
     // MeshGeometry -> aiMesh, return mesh index + 1 or 0 if the conversion failed
     std::vector<unsigned int> ConvertMesh(const MeshGeometry& mesh, const Model& model,
@@ -453,6 +453,7 @@ private:
     std::vector<aiMaterial*> materials;
     std::vector<aiAnimation*> animations;
     std::vector<aiLight*> lights;
+    std::vector<aiBone*> bones;
     std::vector<aiCamera*> cameras;
     std::vector<aiTexture*> textures;
 

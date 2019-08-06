@@ -104,6 +104,8 @@ MeshGeometry::MeshGeometry(uint64_t id, const Element& element, const std::strin
         DOMError("failed to read Geometry object (class: Mesh), no data scope found");
     }
 
+    printf("------- Name: %s\n", name.c_str());
+
     // must have Mesh elements:
     const Element& Vertices = GetRequiredElement(*sc,"Vertices",&element);
     const Element& PolygonVertexIndex = GetRequiredElement(*sc,"PolygonVertexIndex",&element);
