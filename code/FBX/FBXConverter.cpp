@@ -1452,7 +1452,9 @@ namespace Assimp {
             const Skin& sk = *geo.DeformerSkin();
 
             std::vector<aiBone*> bones;
-            bones.reserve(sk.Clusters().size());
+            size_t clusterSize = sk.Clusters().size();
+            printf("Cluster size: %zu\n", clusterSize);
+            bones.reserve(clusterSize);
 
             const bool no_mat_check = materialIndex == NO_MATERIAL_SEPARATION;
             ai_assert(no_mat_check || outputVertStartIndices);
@@ -1464,9 +1466,11 @@ namespace Assimp {
 
                     const WeightIndexArray& indices = cluster->GetIndices();
 
-                    if (indices.empty() && mRemoveEmptyBones ) {
+                    // Disabled hack to prevent empty bones from existing
+                    /*if (indices.empty() && mRemoveEmptyBones ) {
+                        
                         continue;
-                    }
+                    }*/
 
                     const MatIndexArray& mats = geo.GetMaterialIndices();
 
@@ -1520,10 +1524,10 @@ namespace Assimp {
                     // if we found at least one, generate the output bones
                     // XXX this could be heavily simplified by collecting the bone
                     // data in a single step.
-                    if (ok) {
+                   // if (ok) {
                         ConvertCluster(bones, model, *cluster, out_indices, index_out_indices,
                             count_out_indices, node_global_transform);
-                    }
+                    //}
                 }
             }
             catch (std::exception&) {
@@ -1537,6 +1541,8 @@ namespace Assimp {
 
             out->mBones = new aiBone*[bones.size()]();
             out->mNumBones = static_cast<unsigned int>(bones.size());
+
+            printf("Bone count: %d list count: %ld\n", out->mNumBones, bones.size());
 
             std::swap_ranges(bones.begin(), bones.end(), out->mBones);
         }
@@ -1553,6 +1559,7 @@ namespace Assimp {
 
             bone->mName = FixNodeName(cl.TargetNode()->Name());
 
+            printf("Convert cluster for: %s\n", bone->mName.C_Str());
             bone->mOffsetMatrix = cl.TransformLink();
             bone->mOffsetMatrix.Inverse();
 
@@ -1569,6 +1576,7 @@ namespace Assimp {
                 const size_t index_index = index_out_indices[i];
 
                 if (index_index == no_index_sentinel) {
+                    printf("no index? err\n");
                     continue;
                 }
 
@@ -3402,7 +3410,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             if (rotation.size()) {
                 InterpolateKeys(out_quat, times, rotation, def_rotation, maxTime, minTime, order);
             }
-            else {
+            else { // todo: please fix anim_fps scaling
                 for (size_t i = 0; i < times.size(); ++i) {
                     out_quat[i].mTime = CONVERT_FBX_TIME(times[i]) * anim_fps;
                     out_quat[i].mValue = EulerToQuaternion(def_rotation, order);
@@ -3627,59 +3635,53 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 if(anim->mNumChannels && anim->mChannels)
                 {
                     for( unsigned int x = 0; x < anim->mNumChannels; x++)
-                    {
-                        // note: armature has scale of 100
-                        // why?
-                        // once that is fixed anim should be ok.
-                        
+                    {                        
                         aiNodeAnim * nodeAnim = anim->mChannels[x];
-                        for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
-                        {
-                            aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
-                            vectorKey.mValue *= scale;
-                        }
+                        // for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
+                        // {
+                        //     //aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
+                        //     //vectorKey.mValue *= 1.0f/scale;
+                        // }
 
-                        for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
-                        {
-                           // aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
-                           // vectorKey.mValue *= 1.0f/scale;
-                        }
+                        // for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
+                        // {
+                        //    aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
+                        //    vectorKey.mValue = 
+                        // }
 
                     }
                 }              
             }
             
             for (auto mesh : meshes) {
-                printf("------------\n");
-                printf("mesh name: %s, vertexes: %d\n", mesh->mName.C_Str(), mesh->mNumVertices);
-                printf("----------------\n");
+                printf("-------------------------------\n");
+                printf("mesh name: %s, vertexes: %d scale: %f\n", mesh->mName.C_Str(), mesh->mNumVertices, scale);
                 if (nullptr == mesh)
                     continue;
 
                 for (unsigned int x = 0; x < mesh->mNumVertices; ++x) {
-                    aiVector3D &pos = mesh->mVertices[x];
-                    pos *= scale;
+                    //aiVector3D &pos = mesh->mVertices[x];
+                    //os *= scale;
                 }
 
-                for(unsigned int x = 0; x < mesh->mNumBones; ++x) {
-                    aiBone* bone = mesh->mBones[x];
-                    aiMatrix4x4 &ref = bone->mOffsetMatrix;
-                    ref.a4 *= scale;
-                    ref.b4 *= scale;
-                    ref.c4 *= scale;
-                }
+                // for(unsigned int x = 0; x < mesh->mNumBones; ++x) {
+                //     aiBone* bone = mesh->mBones[x];
+                //     aiMatrix4x4 &ref = bone->mOffsetMatrix;
+                //     ref.a4 *= scale;
+                //     ref.b4 *= scale;
+                //     ref.c4 *= scale;
+                // }
                 
-                for (unsigned int x = 0; x < mesh->mNumAnimMeshes; ++x) {
-                    aiAnimMesh *morphMesh = mesh->mAnimMeshes[x];
-                    if (morphMesh->HasPositions()) {
-                        for (unsigned int i = 0; i < morphMesh->mNumVertices; ++i) {
-                            aiVector3D &pos = morphMesh->mVertices[i];
-                            pos *= scale;
-                        }
-                    }
-                }
+                // for (unsigned int x = 0; x < mesh->mNumAnimMeshes; ++x) {
+                //     aiAnimMesh *morphMesh = mesh->mAnimMeshes[x];
+                //     if (morphMesh->HasPositions()) {
+                //         for (unsigned int i = 0; i < morphMesh->mNumVertices; ++i) {
+                //             aiVector3D &pos = morphMesh->mVertices[i];
+                //             pos *= scale;
+                //         }
+                //     }
+                // }
             }
-
         }
 
         void FBXConverter::TransferDataToScene()
@@ -3690,7 +3692,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // note: the trailing () ensures initialization with NULL - not
             // many C++ users seem to know this, so pointing it out to avoid
             // confusion why this code works.
-            printf("C++ meshes count: %d\n", meshes.size());
+            printf("C++ meshes count: %ld\n", meshes.size());
             //printf("number of meshes read from fbx: %d\n", meshes.si);
 
             assert(out->mNumMeshes == 0);

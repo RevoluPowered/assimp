@@ -66,6 +66,7 @@ Geometry::Geometry(uint64_t id, const Element& element, const std::string& name,
     , skin()
 {
     const std::vector<const Connection*>& conns = doc.GetConnectionsByDestinationSequenced(ID(),"Deformer");
+    printf("Connection count: %d\n", conns.size());
     for(const Connection* con : conns) {
         const Skin* const sk = ProcessSimpleConnection<Skin>(*con, false, "Skin -> Geometry", element);
         if(sk) {
@@ -115,7 +116,7 @@ MeshGeometry::MeshGeometry(uint64_t id, const Element& element, const std::strin
 
     if(tempVerts.empty()) {
         FBXImporter::LogWarn("encountered mesh with no vertices");
-        return;
+        //return;
     }
 
     std::vector<int> tempFaces;
@@ -123,7 +124,7 @@ MeshGeometry::MeshGeometry(uint64_t id, const Element& element, const std::strin
 
     if(tempFaces.empty()) {
         FBXImporter::LogWarn("encountered mesh with no faces");
-        return;
+        //return;
     }
 
     m_vertices.reserve(tempFaces.size());

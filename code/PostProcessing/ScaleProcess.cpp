@@ -81,6 +81,8 @@ void ScaleProcess::SetupProperties( const Importer* pImp ) {
 void ScaleProcess::Execute( aiScene* pScene ) {
     printf("Attempting to scale scene %f\n", mScale);
 
+    
+
     assert(mScale != 0);
     assert(nullptr != pScene);
     assert(nullptr != pScene->mRootNode);
