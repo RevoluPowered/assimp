@@ -67,7 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <array>
 #include <unordered_set>
-
+#include <iostream>
 // RESOURCES:
 // https://code.blender.org/2013/08/fbx-binary-file-format-specification/
 // https://wiki.blender.org/index.php/User:Mont29/Foundation/FBX_File_Structure
@@ -1647,6 +1647,8 @@ void FBXExporter::WriteObjects ()
             const aiBone* b = m->mBones[bi];
             const std::string name(b->mName.C_Str());
             auto elem = node_by_bone.find(name);
+            std::cout << "element name: " << name << std::endl;
+            
             aiNode* n;
             if (elem != node_by_bone.end()) {
                 n = elem->second;
@@ -1661,7 +1663,13 @@ void FBXExporter::WriteObjects ()
                 node_by_bone[name] = n;
                 limbnodes.insert(n);
             }
+
+            std::cout << "n element is " << n->mName.C_Str() << std::endl;
             skeleton.insert(n);
+            for( auto thing : skeleton)
+            {
+                std::cout << "skel element: " << thing->mName.C_Str() << std::endl;
+            }
             // mark all parent nodes as skeleton as well,
             // up until we find the root node,
             // or else the node containing the mesh,
@@ -1706,8 +1714,9 @@ void FBXExporter::WriteObjects ()
                     }
                     if (end) { break; }
                 }
-                limbnodes.insert(parent);
-                skeleton.insert(parent);
+                // no bad this breaks things
+                //limbnodes.insert(parent);
+                //skeleton.insert(parent);
                 // if it was the skeleton root we can finish here
                 if (end) { break; }
             }
@@ -1896,6 +1905,11 @@ void FBXExporter::WriteObjects ()
 
     }
 
+    for( auto nodebone : limbnodes)
+    {
+        std::cout << "bone " << nodebone->mName.C_Str() << std::endl;
+    }
+
     // BindPose
     //
     // This is a legacy system, which should be unnecessary.
@@ -1979,7 +1993,7 @@ void FBXExporter::WriteObjects ()
     }*/
 
     // TODO: cameras, lights
-
+    
     // write nodes (i.e. model hierarchy)
     // start at root node
     WriteModelNodes(
