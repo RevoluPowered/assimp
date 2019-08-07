@@ -1474,8 +1474,6 @@ namespace Assimp {
 
                     const MatIndexArray& mats = geo.GetMaterialIndices();
 
-                    bool ok = false;
-
                     const size_t no_index_sentinel = std::numeric_limits<size_t>::max();
 
                     count_out_indices.clear();
@@ -1515,8 +1513,7 @@ namespace Assimp {
                                     out_indices.push_back(std::distance(outputVertStartIndices->begin(), it));
                                 }
 
-                                ++count_out_indices.back();
-                                ok = true;
+                                ++count_out_indices.back();                               
                             }
                         }
                     }
@@ -3541,10 +3538,6 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             out->mMetaData->Set(13, "TimeSpanStop", doc.GlobalSettings().TimeSpanStop());
             out->mMetaData->Set(14, "CustomFrameRate", doc.GlobalSettings().CustomFrameRate());
         }
-
-        void FBXConverter::ConvertToUnitScale( FbxUnit unit ) {
-            if (mCurrentUnit == unit) {
-                return;
 
         /*void FBXConverter::ScaleMatrixByReal( ai_real real, aiMatrix4x4& out )
         {
