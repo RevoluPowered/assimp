@@ -420,11 +420,11 @@ void FBXExporter::WriteGlobalSettings ()
     p.AddP70double("OriginalUnitScaleFactor", 1.0);
     p.AddP70color("AmbientColor", 0.0, 0.0, 0.0);
     p.AddP70string("DefaultCamera", "Producer Perspective");
-    p.AddP70enum("TimeMode", 11);
+    p.AddP70enum("TimeMode", 10);
     p.AddP70enum("TimeProtocol", 2);
     p.AddP70enum("SnapOnFrameMode", 0);
     p.AddP70time("TimeSpanStart", 0); // TODO: animation support
-    p.AddP70time("TimeSpanStop", FBX::SECOND); // TODO: animation support
+    p.AddP70time("TimeSpanStop", 7205040648072050406480); // TODO: animation support
     p.AddP70double("CustomFrameRate", -1.0);
     p.AddP70("TimeMarker", "Compound", "", ""); // not sure what this is
     p.AddP70int("CurrentTimeMarker", -1);
@@ -989,7 +989,9 @@ int64_t to_ktime(double ticks, const aiAnimation* anim) {
 }
 
 int64_t to_ktime(double time) {
-    return (static_cast<int64_t>(time * FBX::SECOND));
+
+    return (static_cast<int64_t>((time/30.0) * FBX::SECOND));
+
 }
 
 void FBXExporter::WriteObjects ()
