@@ -268,6 +268,18 @@ struct aiScene
     */
     C_STRUCT aiMesh** mMeshes;
 
+    /** The number of bones in the scene */
+    unsigned int mNumBones;
+
+    /** The array of bones in the scene.
+    * 
+    * Use the indices given in the aiNode structure to access
+    * this array. The array is mNumMeshes in size. If the
+    * AI_SCENE_FLAGS_INCOMPLETE flag is not set there will always
+    * be at least ONE material.
+    */
+    C_STRUCT aiBone** mBones;
+
     /** The number of materials in the scene. */
     unsigned int mNumMaterials;
 

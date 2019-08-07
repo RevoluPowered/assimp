@@ -317,7 +317,6 @@ namespace Assimp {
             }
         }
 
-
         void FBXConverter::ConvertLights(const Model& model, const std::string &orig_name) {
             const std::vector<const NodeAttribute*>& node_attrs = model.GetAttributes();
             for (const NodeAttribute* attr : node_attrs) {
@@ -328,16 +327,13 @@ namespace Assimp {
             }
         }
 
-
         void FBXConverter::ConvertBones(const Model& model, const std::string &orig_name) {
             const std::vector<const NodeAttribute*>& node_attrs = model.GetAttributes();
             for (const NodeAttribute* attr : node_attrs) {
                 const LimbNode* const bone = dynamic_cast<const LimbNode*>(attr);
                 if (bone) {
                     printf("Real Bone as per fbx: %s\n", bone->Name().c_str());
-                    //ConvertLight(*light, orig_name);
-
-
+                    ConvertBone(*bone, orig_name);
                 }
             }
         }
@@ -353,18 +349,18 @@ namespace Assimp {
             }
         }
 
-        void FBXConverter::ConvertBone(const Bone& import_bone, const std::string &orig_name)
+        void FBXConverter::ConvertBone(const LimbNode& import_bone, const std::string &orig_name)
         {
             // eat cupcakes 
             aiBone* const bone = new aiBone();
-            bone.push_back(bone);
+            bones.push_back(bone);
 
-            bone->mName = FixNodeName(cl.TargetNode()->Name());
-            printf("Convert cluster for: %s\n", bone->mName.C_Str());
-            bone->mOffsetMatrix = cl.TransformLink();
-            bone->mOffsetMatrix.Inverse();
-            bone->mOffsetMatrix = bone->mOffsetMatrix * node_global_transform;
-            bone->mNumWeights = static_cast<unsigned int>(out_indices.size());
+            // bone->mName = FixNodeName(cl.TargetNode()->Name());
+            //printf("Convert cluster for: %s\n", bone->mName.C_Str());
+           // bone->mOffsetMatrix = cl.TransformLink();
+           /// bone->mOffsetMatrix.Inverse();
+           // bone->mOffsetMatrix = bone->mOffsetMatrix * node_global_transform;
+          //  bone->mNumWeights = static_cast<unsigned int>(out_indices.size());
         }
 
         void FBXConverter::ConvertLight(const Light& light, const std::string &orig_name) {
@@ -1490,149 +1486,8 @@ namespace Assimp {
         {
             ai_assert(geo.DeformerSkin());
 
-            std::vector<size_t> out_indices;
-            std::vector<size_t> index_out_indices;
-            std::vector<size_t> count_out_indices;
-
-            const Skin& sk = *geo.DeformerSkin();
-
-            //std::vector<aiBone*> bones;
-            //size_t clusterSize = sk.Clusters().size();
-            //printf("Cluster size: %zu\n", clusterSize);
-            //bones.reserve(clusterSize);
-
             const bool no_mat_check = materialIndex == NO_MATERIAL_SEPARATION;
             ai_assert(no_mat_check || outputVertStartIndices);
-
-            try {
-
-                for (const Cluster* cluster : sk.Clusters()) {
-                    ai_assert(cluster);
-
-                    const WeightIndexArray& indices = cluster->GetIndices();
-
-                    // Disabled hack to prevent empty bones from existing
-                    /*if (indices.empty() && mRemoveEmptyBones ) {
-                        
-                        continue;
-                    }*/
-
-                    // const MatIndexArray& mats = geo.GetMaterialIndices();
-
-                    // bool ok = false;
-
-                    // const size_t no_index_sentinel = std::numeric_limits<size_t>::max();
-
-                    // count_out_indices.clear();
-                    // index_out_indices.clear();
-                    // out_indices.clear();
-
-                    // // now check if *any* of these weights is contained in the output mesh,
-                    // // taking notes so we don't need to do it twice.
-                    // for (WeightIndexArray::value_type index : indices) {
-
-                    //     unsigned int count = 0;
-                    //     const unsigned int* const out_idx = geo.ToOutputVertexIndex(index, count);
-                    //     // ToOutputVertexIndex only returns NULL if index is out of bounds
-                    //     // which should never happen
-                    //     ai_assert(out_idx != NULL);
-
-                    //     index_out_indices.push_back(no_index_sentinel);
-                    //     count_out_indices.push_back(0);
-
-                    //     for (unsigned int i = 0; i < count; ++i) {
-                    //         if (no_mat_check || static_cast<size_t>(mats[geo.FaceForVertexIndex(out_idx[i])]) == materialIndex) {
-
-                    //             if (index_out_indices.back() == no_index_sentinel) {
-                    //                 index_out_indices.back() = out_indices.size();
-                    //             }
-
-                    //             if (no_mat_check) {
-                    //                 out_indices.push_back(out_idx[i]);
-                    //             } else {
-                    //                 // this extra lookup is in O(logn), so the entire algorithm becomes O(nlogn)
-                    //                 const std::vector<unsigned int>::iterator it = std::lower_bound(
-                    //                     outputVertStartIndices->begin(),
-                    //                     outputVertStartIndices->end(),
-                    //                     out_idx[i]
-                    //                 );
-
-                    //                 out_indices.push_back(std::distance(outputVertStartIndices->begin(), it));
-                    //             }
-
-                    //             ++count_out_indices.back();
-                    //             ok = true;
-                    //         }
-                    //     }
-                    // }
-                    
-                    // if we found at least one, generate the output bones
-                    // XXX this could be heavily simplified by collecting the bone
-                    // data in a single step.
-                   // if (ok) {
-                        //ConvertCluster(bones, model, *cluster, out_indices, index_out_indices,
-                         //   count_out_indices, node_global_transform);
-                    //}
-                }
-            }
-            catch (std::exception&) {
-                std::for_each(bones.begin(), bones.end(), Util::delete_fun<aiBone>());
-                throw;
-            }
-
-            if (bones.empty()) {
-                return;
-            }
-
-            out->mBones = new aiBone*[bones.size()]();
-            out->mNumBones = static_cast<unsigned int>(bones.size());
-
-            printf("Bone count: %d list count: %ld\n", out->mNumBones, bones.size());
-
-            std::swap_ranges(bones.begin(), bones.end(), out->mBones);
-        }
-
-        void FBXConverter::ConvertCluster(std::vector<aiBone*>& bones, const Model& /*model*/, const Cluster& cl,
-            std::vector<size_t>& out_indices,
-            std::vector<size_t>& index_out_indices,
-            std::vector<size_t>& count_out_indices,
-            const aiMatrix4x4& node_global_transform)
-        {
-
-            // aiBone* const bone = new aiBone();
-            // bones.push_back(bone);
-
-            // bone->mName = FixNodeName(cl.TargetNode()->Name());
-
-            // printf("Convert cluster for: %s\n", bone->mName.C_Str());
-            // bone->mOffsetMatrix = cl.TransformLink();
-            // bone->mOffsetMatrix.Inverse();
-
-            // bone->mOffsetMatrix = bone->mOffsetMatrix * node_global_transform;
-
-            // bone->mNumWeights = static_cast<unsigned int>(out_indices.size());
-            // aiVertexWeight* cursor = bone->mWeights = new aiVertexWeight[out_indices.size()];
-
-            // const size_t no_index_sentinel = std::numeric_limits<size_t>::max();
-            // const WeightArray& weights = cl.GetWeights();
-
-            // const size_t c = index_out_indices.size();
-            // for (size_t i = 0; i < c; ++i) {
-            //     const size_t index_index = index_out_indices[i];
-
-            //     if (index_index == no_index_sentinel) {
-            //         printf("no index? err\n");
-            //         continue;
-            //     }
-
-            //     const size_t cc = count_out_indices[i];
-            //     for (size_t j = 0; j < cc; ++j) {
-            //         aiVertexWeight& out_weight = *cursor++;
-
-            //         out_weight.mVertexId = static_cast<unsigned int>(out_indices[index_index + j]);
-            //         out_weight.mWeight = weights[i];
-            //     }
-            // }
         }
 
         void FBXConverter::ConvertMaterialForMesh(aiMesh* out, const Model& model, const MeshGeometry& geo,
@@ -3754,14 +3609,13 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 std::swap_ranges(materials.begin(), materials.end(), out->mMaterials);
             }
 
-            if (animations.size()) {
-                out-> = new aiAnimation*[animations.size()]();
-                out->mNumAnimations = static_cast<unsigned int>(animations.size());
+
+            if (bones.size()) {
+                out->mBones = new aiBone*[bones.size()]();
+                out->mNumBones = static_cast<unsigned int>(bones.size());
 
                 std::swap_ranges(animations.begin(), animations.end(), out->mAnimations);
             }
-
-
 
             if (animations.size()) {
                 out->mAnimations = new aiAnimation*[animations.size()]();

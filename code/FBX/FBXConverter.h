@@ -194,6 +194,7 @@ private:
     // ------------------------------------------------------------------------------------------------
     void ConvertModel(const Model& model, aiNode& nd, const aiMatrix4x4& node_global_transform);
     void ConvertBones(const Model& model, const std::string &orig_name);
+    void ConvertBone(const LimbNode& bone, const std::string &orig_name);
     // ------------------------------------------------------------------------------------------------
     // MeshGeometry -> aiMesh, return mesh index + 1 or 0 if the conversion failed
     std::vector<unsigned int> ConvertMesh(const MeshGeometry& mesh, const Model& model,
@@ -234,13 +235,6 @@ private:
         const aiMatrix4x4& node_global_transform = aiMatrix4x4(),
         unsigned int materialIndex = NO_MATERIAL_SEPARATION,
         std::vector<unsigned int>* outputVertStartIndices = NULL);
-
-    // ------------------------------------------------------------------------------------------------
-    void ConvertCluster(std::vector<aiBone*>& bones, const Model& /*model*/, const Cluster& cl,
-        std::vector<size_t>& out_indices,
-        std::vector<size_t>& index_out_indices,
-        std::vector<size_t>& count_out_indices,
-        const aiMatrix4x4& node_global_transform);
 
     // ------------------------------------------------------------------------------------------------
     void ConvertMaterialForMesh(aiMesh* out, const Model& model, const MeshGeometry& geo,
