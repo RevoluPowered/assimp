@@ -330,6 +330,14 @@ namespace Assimp {
         void FBXConverter::ConvertBones(const Model& model, const std::string &orig_name) {
             const std::vector<const NodeAttribute*>& node_attrs = model.GetAttributes();
             for (const NodeAttribute* attr : node_attrs) {
+                PropertyTable val = attr->Props();
+                DirectPropertyMap map = val.GetUnparsedProperties();
+                
+                for( auto att : map)
+                {
+                    printf("[%s] \n", att.first.c_str());
+            
+                }
                 const LimbNode* const bone = dynamic_cast<const LimbNode*>(attr);
                 if (bone) {
                     printf("Real Bone as per fbx: %s\n", bone->Name().c_str());
@@ -341,6 +349,7 @@ namespace Assimp {
 
         void FBXConverter::ConvertCameras(const Model& model, const std::string &orig_name) {
             const std::vector<const NodeAttribute*>& node_attrs = model.GetAttributes();
+            
             for (const NodeAttribute* attr : node_attrs) {
                 const Camera* const cam = dynamic_cast<const Camera*>(attr);
                 if (cam) {
@@ -354,6 +363,17 @@ namespace Assimp {
             // eat cupcakes 
             aiBone* const bone = new aiBone();
             bones.push_back(bone);
+
+            //     const Scope& sc = GetRequiredScope(import_bone);
+
+            // const Element* const Indexes = sc["Indexes"];
+            // const Element* const Weights = sc["Weights"];
+
+            // const Element& Transform = GetRequiredElement(sc,"Transform",&element);
+            // const Element& TransformLink = GetRequiredElement(sc,"TransformLink",&element);
+
+            // transform = ReadMatrix(Transform);
+            // transformLink = ReadMatrix(TransformLink);
 
             // bone->mName = FixNodeName(cl.TargetNode()->Name());
             //printf("Convert cluster for: %s\n", bone->mName.C_Str());

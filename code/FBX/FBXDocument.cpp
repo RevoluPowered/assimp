@@ -159,7 +159,7 @@ const Object* LazyObject::Get(bool dieOnError)
                 object.reset(new Null(id,element,doc,name));
             }
             else if (!strcmp(classtag.c_str(),"LimbNode")) {
-                printf("Element: %s\n", name.c_str());
+                //printf("Element: %s\n", name.c_str());
                 object.reset(new LimbNode(id,element,doc,name));
             }
         }
