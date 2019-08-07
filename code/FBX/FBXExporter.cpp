@@ -1855,6 +1855,7 @@ void FBXExporter::WriteObjects ()
             if(epsilon_custom > 0)
                 epsilon = epsilon_custom;
             bool bone_xform_okay = true;
+            
             if (b && ! tr.Equal(b->mOffsetMatrix, epsilon)) {
                 not_in_bind_pose.insert(b);
                 bone_xform_okay = false;
