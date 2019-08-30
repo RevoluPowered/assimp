@@ -2746,6 +2746,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
                     if (comp != TransformationComp_Rotation && comp != TransformationComp_Scaling && comp != TransformationComp_Translation)
                     {
+                        printf("yes\n");
                         has_complex = true;
                     }
                 }
@@ -2787,7 +2788,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // code to avoid nodes that have identity transform, but non-identity
             // animations, being dropped.
 
-            std::unique_ptr<aiNodeAnim> nodeAnim = std::unique_ptr<aiNodeAnim>();
+            std::unique_ptr<aiNodeAnim> nodeAnim = std::unique_ptr<aiNodeAnim>( new aiNodeAnim() );
 
             unsigned int flags = 0, bit = 0x1;
             for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i, bit <<= 1) {
@@ -2798,12 +2799,14 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     ai_assert(comp != TransformationComp_RotationPivotInverse);
                     ai_assert(comp != TransformationComp_ScalingPivotInverse);
 
-                    nodeAnim->mNodeName.Set(fixed_name);
-                    
-                    std::vector<const AnimationCurveNode*> curves = (*chain[i]).second;
+                    nodeAnim->mNodeName = aiString(fixed_name);
 
+                    std::vector<const AnimationCurveNode*> curves = (*chain[i]).second;
+// dummy scaling key
                     switch (comp)
                     {
+                    case TransformationComp_RotationOffset:
+                    case TransformationComp_RotationPivot:
                     case TransformationComp_Rotation:                    
                     case TransformationComp_PreRotation:
                     case TransformationComp_PostRotation:
@@ -2816,17 +2819,17 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                             stop,
                             max_time,
                             min_time,
-                            target.RotationOrder());                     
+                            target.RotationOrder());   
+                                              
                         break;
 
-                    case TransformationComp_RotationOffset:
-                    case TransformationComp_RotationPivot:
-                    case TransformationComp_ScalingOffset:
-                    case TransformationComp_ScalingPivot:
                     case TransformationComp_Translation:
                     case TransformationComp_GeometricTranslation:
                         ConvertTranslationKeys(nodeAnim.get(), curves, layer_map, start, stop, max_time, min_time);
                         break;
+
+                    case TransformationComp_ScalingOffset:
+                    case TransformationComp_ScalingPivot:
                     case TransformationComp_Scaling:
                     case TransformationComp_GeometricScaling:
                         ConvertScaleKeys(nodeAnim.get(), curves, layer_map, start, stop, max_time, min_time);                   
@@ -2842,7 +2845,33 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 delete nodeAnim.release();
             }
             else {
+                if(nodeAnim->mNumScalingKeys == 0)
+                {
+                    nodeAnim->mScalingKeys = new aiVectorKey[1];
+                    nodeAnim->mNumScalingKeys = 1;
+                    nodeAnim->mScalingKeys[0].mTime = 0;
+                    nodeAnim->mScalingKeys[0].mValue = aiVector3D();
+                }
+
+                if(nodeAnim->mNumPositionKeys == 0)
+                {
+                    nodeAnim->mPositionKeys = new aiVectorKey[1];
+                    nodeAnim->mNumPositionKeys = 1;
+                    nodeAnim->mPositionKeys[0].mTime = 0;
+                    nodeAnim->mPositionKeys[0].mValue = aiVector3D();
+                }
+
+                if(nodeAnim->mNumRotationKeys == 0)
+                {
+                    nodeAnim->mRotationKeys = new aiQuatKey[1];
+                    nodeAnim->mNumRotationKeys = 1;
+                    nodeAnim->mRotationKeys[0].mTime = 0;
+                    nodeAnim->mRotationKeys[0].mValue = aiQuaternion();
+                }
+
                 node_anims.push_back(nodeAnim.get());
+                nodeAnim.release();
+                nodeAnim = std::unique_ptr<aiNodeAnim>( new aiNodeAnim() ); 
             }
 
             node_anim_chain_bits[fixed_name] = flags;
