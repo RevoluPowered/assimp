@@ -317,7 +317,9 @@ private:
         const std::vector<const AnimationCurveNode*>& curves);
 
     // ------------------------------------------------------------------------------------------------
-    aiNodeAnim* GenerateRotationNodeAnim(const std::string& name,
+    aiNodeAnim* GenerateRotationNodeAnim(
+        std::unique_ptr<aiNodeAnim> anim,
+        const std::string& name,
         const Model& target,
         const std::vector<const AnimationCurveNode*>& curves,
         const LayerMap& layer_map,
