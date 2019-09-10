@@ -2719,8 +2719,6 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             NodeMap::const_iterator chain[TransformationComp_MAXIMUM];
 
             bool has_any = false;
-            bool has_complex = false;
-
             for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i) {
                 const TransformationComp comp = static_cast<TransformationComp>(i);
 
@@ -2732,23 +2730,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
                 chain[i] = node_property_map.find(NameTransformationCompProperty(comp));
                 if (chain[i] != node_property_map.end()) {
-
-                    // // check if this curves contains redundant information by looking
-                    // // up the corresponding node's transformation chain.
-                    // if (doc.Settings().optimizeEmptyAnimationCurves &&
-                    //     IsRedundantAnimationData(target, comp, (*chain[i]).second)) {
-
-                    //     FBXImporter::LogDebug("dropping redundant animation channel for node " + target.Name());
-                    //     continue;
-                    // }
-
                     has_any = true;
-
-                    if (comp != TransformationComp_Rotation && comp != TransformationComp_Scaling && comp != TransformationComp_Translation)
-                    {
-                        printf("yes\n");
-                        has_complex = true;
-                    }
                 }
             }
 
@@ -2761,120 +2743,23 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // be invoked _later_ (animations come first). If this node has only rotation,
             // scaling and translation _and_ there are no animated other components either,
             // we can use a single node and also a single node animation channel.
-            if (!has_complex && !NeedsComplexTransformationChain(target)) {
+        
+            aiNodeAnim* const nd = GenerateSimpleNodeAnim(fixed_name, target, chain,
+                node_property_map.end(),
+                layer_map,
+                start, stop,
+                max_time,
+                min_time,
+                true // input is TRS order, assimp is SRT
+            );
 
-                aiNodeAnim* const nd = GenerateSimpleNodeAnim(fixed_name, target, chain,
-                    node_property_map.end(),
-                    layer_map,
-                    start, stop,
-                    max_time,
-                    min_time,
-                    true // input is TRS order, assimp is SRT
-                );
-
-                ai_assert(nd);
-                if (nd->mNumPositionKeys == 0 && nd->mNumRotationKeys == 0 && nd->mNumScalingKeys == 0) {
-                    delete nd;
-                }
-                else {
-                    node_anims.push_back(nd);
-                }
-                return;
-            }
-
-            // otherwise, things get gruesome and we need separate animation channels
-            // for each part of the transformation chain. Remember which channels
-            // we generated and pass this information to the node conversion
-            // code to avoid nodes that have identity transform, but non-identity
-            // animations, being dropped.
-
-            std::unique_ptr<aiNodeAnim> nodeAnim = std::unique_ptr<aiNodeAnim>( new aiNodeAnim() );
-
-            unsigned int flags = 0, bit = 0x1;
-            for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i, bit <<= 1) {
-                const TransformationComp comp = static_cast<TransformationComp>(i);
-                if (chain[i] != node_property_map.end()) {
-                    flags |= bit;
-
-                    ai_assert(comp != TransformationComp_RotationPivotInverse);
-                    ai_assert(comp != TransformationComp_ScalingPivotInverse);
-
-                    nodeAnim->mNodeName = aiString(fixed_name);
-
-                    std::vector<const AnimationCurveNode*> curves = (*chain[i]).second;
-// dummy scaling key
-                    switch (comp)
-                    {
-                    case TransformationComp_RotationOffset:
-                    case TransformationComp_RotationPivot:
-                    case TransformationComp_Rotation:                    
-                    case TransformationComp_PreRotation:
-                    case TransformationComp_PostRotation:
-                    case TransformationComp_GeometricRotation:
-                        ConvertRotationKeys(
-                            nodeAnim.get(),
-                            curves,
-                            layer_map,
-                            start,
-                            stop,
-                            max_time,
-                            min_time,
-                            target.RotationOrder());   
-                                              
-                        break;
-
-                    case TransformationComp_Translation:
-                    case TransformationComp_GeometricTranslation:
-                        ConvertTranslationKeys(nodeAnim.get(), curves, layer_map, start, stop, max_time, min_time);
-                        break;
-
-                    case TransformationComp_ScalingOffset:
-                    case TransformationComp_ScalingPivot:
-                    case TransformationComp_Scaling:
-                    case TransformationComp_GeometricScaling:
-                        ConvertScaleKeys(nodeAnim.get(), curves, layer_map, start, stop, max_time, min_time);                   
-                        break;
-
-                    default:
-                        ai_assert(false);
-                    }
-                }
-            }
-
-            if (nodeAnim->mNumPositionKeys == 0 && nodeAnim->mNumRotationKeys == 0 && nodeAnim->mNumScalingKeys == 0) {
-                delete nodeAnim.release();
+            ai_assert(nd);
+            if (nd->mNumPositionKeys == 0 && nd->mNumRotationKeys == 0 && nd->mNumScalingKeys == 0) {
+                delete nd;
             }
             else {
-                if(nodeAnim->mNumScalingKeys == 0)
-                {
-                    nodeAnim->mScalingKeys = new aiVectorKey[1];
-                    nodeAnim->mNumScalingKeys = 1;
-                    nodeAnim->mScalingKeys[0].mTime = 0;
-                    nodeAnim->mScalingKeys[0].mValue = aiVector3D();
-                }
-
-                if(nodeAnim->mNumPositionKeys == 0)
-                {
-                    nodeAnim->mPositionKeys = new aiVectorKey[1];
-                    nodeAnim->mNumPositionKeys = 1;
-                    nodeAnim->mPositionKeys[0].mTime = 0;
-                    nodeAnim->mPositionKeys[0].mValue = aiVector3D();
-                }
-
-                if(nodeAnim->mNumRotationKeys == 0)
-                {
-                    nodeAnim->mRotationKeys = new aiQuatKey[1];
-                    nodeAnim->mNumRotationKeys = 1;
-                    nodeAnim->mRotationKeys[0].mTime = 0;
-                    nodeAnim->mRotationKeys[0].mValue = aiQuaternion();
-                }
-
-                node_anims.push_back(nodeAnim.get());
-                nodeAnim.release();
-                nodeAnim = std::unique_ptr<aiNodeAnim>( new aiNodeAnim() ); 
+                node_anims.push_back(nd);
             }
-
-            node_anim_chain_bits[fixed_name] = flags;
         }
 
 
@@ -3005,6 +2890,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             na->mNodeName.Set(name);
 
             const PropertyTable& props = target.Props();
+
+            //ApplyPivots(props); // apply pivot data to the transform scaling and rotation if required.
 
             // need to convert from TRS order to SRT?
             if (reverse_order) {
