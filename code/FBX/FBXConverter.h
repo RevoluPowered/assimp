@@ -353,8 +353,7 @@ private:
         const LayerMap& layer_map,
         int64_t start, int64_t stop,
         double& max_time,
-        double& min_time,
-        bool reverse_order = false);
+        double& min_time);
 
     // key (time), value, mapto (component index)
     typedef std::tuple<std::shared_ptr<KeyTimeList>, std::shared_ptr<KeyValueList>, unsigned int > KeyFrameList;
