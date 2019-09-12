@@ -2947,8 +2947,27 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             KeyFrameListList translation;
             KeyFrameListList rotation;
 
+            // 3DS MAX 
+            // TransformationComp_GeometricScalingInverse
+
+            
+            // MAYA PIVOT DATA COMPUTATION
+
+            if (chain[TransformationComp_ScalingPivot] != iter_end) {
+                printf("FOUND PIVOT SCALE KEYFRAMES\n");
+                scaling = GetKeyframeList((*chain[TransformationComp_ScalingPivot]).second, start, stop);
+                printf("Scaling keyframe count: %ld", scaling.size());
+            }
+
+            if (chain[TransformationComp_ScalingOffset] != iter_end) {
+                printf("FOUND PIVOT SCALE OFFSET KEYFRAMES\n");
+                scaling = GetKeyframeList((*chain[TransformationComp_ScalingOffset]).second, start, stop);
+                printf("Scaling keyframe count: %ld", scaling.size());
+            }
+
             if (chain[TransformationComp_Scaling] != iter_end) {
                 scaling = GetKeyframeList((*chain[TransformationComp_Scaling]).second, start, stop);
+                printf("Scaling keyframe count: %ld", scaling.size());
             }
 
             if (chain[TransformationComp_Translation] != iter_end) {
