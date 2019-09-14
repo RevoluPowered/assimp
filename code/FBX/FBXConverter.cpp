@@ -67,7 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <iomanip>
 #include <cstdint>
-
+#include <iostream>
 
 namespace Assimp {
     namespace FBX {
@@ -2709,24 +2709,25 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 #ifdef ASSIMP_BUILD_DEBUG
             validateAnimCurveNodes(curves, true);
 #endif
-
+        
             for( const AnimationCurveNode* curve : curves)
             {
-                printf("Curve from fbx: ID %d Name: %s\n", curve->ID(), curve->Name().c_str());
+                printf("[Header] Curve from fbx: ID %d Name: %s\n", curve->ID(), curve->Name().c_str());
                 
                 const Object *target = curve->Target();
-                printf("Target property: %s\n", curve->TargetProperty().c_str());
+                printf("-- Target property: %s\n", curve->TargetProperty().c_str());
                 
                 // I believe that an invalid target could 
                 // still be of use in certain cases so we 
                 // must keep this data for now.
                 if(target == nullptr)
                 {
-                    printf("Invalid node target: %d\n", curve->ID());
+                    printf("-- [WARNING-Serious] Invalid node target: %d\n", curve->ID());
+                    continue; // skip this to make sure we handle this case.
                 }
                 else
                 {
-                    printf("Valid node target: %d\n", curve->ID());
+                    printf("-- Valid node target: %d\n", curve->ID());
                 }
 
 
@@ -2735,28 +2736,24 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 AnimationCurveMap map = curve->Curves();
                 AnimationCurveMap::iterator itr;
 
+
                 for( itr = map.begin(); itr != map.end(); ++itr)
                 {
                     std::string name = itr->first;
                     const AnimationCurve* subCurve = itr->second;
-                    printf("Curve name: %s vs sub curve name %s\n", name.c_str(), subCurve->Name().c_str());
-                    subCurve->GetKeys();
+                    printf("-- SubCurve %s vs sub curve name %s\n", name.c_str(), subCurve->Name().c_str());
+                    for( int64_t key  : subCurve->GetKeys() )
+                    {
+                        std::cout << key << ", ";                       
+                    }
+
                 }
 
-                
-                // for( const AnimationCurve subCurve : map)
-                // {
-                //     printf("AnimationSubCurve: %s\n", subCurve.Name().c_str());
-                // }
-                
+                std::cout << std::endl;
 
-
-                // for( TokenPtr token : curve->SourceElement().Tokens() )
-                // {
-                //     //printf("Token detail: %s\n", token->StringContents().c_str());
-                // }
-
-                //GenerateSimpleNodeAnim(fixed_name, curve->Target(), )
+                // todo: container which can contain arbitrary keyframe data?
+                // goal: convert FBX data to assimp aiAnimation.
+                // goal: only include what is needed for the animation
             }
             // const AnimationCurveNode* curve_node = NULL;
             // for (const AnimationCurveNode* node : curves) {
