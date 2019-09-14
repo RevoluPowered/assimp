@@ -2693,6 +2693,9 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
         }
 #endif // ASSIMP_BUILD_DEBUG
 
+
+        
+
         // ------------------------------------------------------------------------------------------------
         void FBXConverter::GenerateNodeAnimations(std::vector<aiNodeAnim*>& node_anims,
             const std::string& fixed_name,
@@ -2709,12 +2712,26 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 #ifdef ASSIMP_BUILD_DEBUG
             validateAnimCurveNodes(curves, true);
 #endif
-        
+
+            // make new animation to hold this animations keyframes
+            aiNodeAnim * animation = new aiNodeAnim();
+            animation->mNumPositionKeys = 0;
+            animation->mNumRotationKeys = 0;
+            animation->mNumScalingKeys = 0;
+
+            // simple position, scale and rotation keys
+            // each will have a target, and if they have any duplicate target they will write to the value of the key.
+            std::map<const Object *, aiVectorKey*> position_keys;
+            std::map<const Object *, aiQuatKey*> rotation_keys;
+            std::map<const Object *, aiVectorKey*> scale_keys;
+
             for( const AnimationCurveNode* curve : curves)
             {
                 printf("[Header] Curve from fbx: ID %d Name: %s\n", curve->ID(), curve->Name().c_str());
                 
                 const Object *target = curve->Target();
+                std::string property_type = curve->TargetProperty();
+
                 printf("-- Target property: %s\n", curve->TargetProperty().c_str());
                 
                 // I believe that an invalid target could 
@@ -2739,9 +2756,55 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
                 for( itr = map.begin(); itr != map.end(); ++itr)
                 {
-                    std::string name = itr->first;
+                    std::string subPropertyName = itr->first;
                     const AnimationCurve* subCurve = itr->second;
-                    printf("-- SubCurve %s vs sub curve name %s\n", name.c_str(), subCurve->Name().c_str());
+                    printf("-- SubCurve %s vs sub curve name %s\n", subPropertyName.c_str(), subCurve->Name().c_str());
+                    const KeyValueList& value_list = subCurve->GetValues();
+
+                    // filter node
+                    if(property_type == "Lcl Translation")
+                    {
+                        // check for target
+                        if( position_keys[target] != nullptr )
+                        {                            
+                            //aiVectorKey* key = position_keys[target];
+                            for( auto value : value_list )
+                            {
+                                aiVectorKey key;
+                                key.mTime = 0;
+
+
+                                if( subPropertyName == "d|X")
+                                {                                
+                                    key.mValue.x = value;    
+                                }
+                                else if( subPropertyName == "d|Y")
+                                {
+                                    key.mValue.x = value;    
+                                }
+                                else if(subPropertyName == "d|Z")
+                                {
+                                    key.mValue.z = value;    
+                                }
+                            }
+
+
+                            else
+                            {
+                                //printf("Found unsupported key %s, ignoring.");
+                            }
+                            
+                            
+
+
+                        }
+                        else
+                        {
+                            
+                        }
+                        
+                    }
+
                     for( int64_t key  : subCurve->GetKeys() )
                     {
                         std::cout << key << ", ";                       

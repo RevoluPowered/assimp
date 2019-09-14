@@ -64,7 +64,7 @@ AnimationCurve::AnimationCurve(uint64_t id, const Element& element, const std::s
     const Scope& sc = GetRequiredScope(element);
     const Element& KeyTime = GetRequiredElement(sc,"KeyTime");
     const Element& KeyValueFloat = GetRequiredElement(sc,"KeyValueFloat");
-
+    // todo: make this into a dictionary somewhere. !important
     ParseVectorDataArray(keys, KeyTime);
     ParseVectorDataArray(values, KeyValueFloat);
 
