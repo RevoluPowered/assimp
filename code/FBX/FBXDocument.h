@@ -695,6 +695,8 @@ public:
 
     /** get list of keyframe positions (time).
      *  Invariant: |GetKeys()| > 0 */
+    /* Get Keys for this animation curve */
+    
     const KeyTimeList& GetKeys() const {
         return keys;
     }

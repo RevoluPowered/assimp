@@ -2678,14 +2678,16 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             bool strictMode) {
             const Object* target(NULL);
             for (const AnimationCurveNode* node : curves) {
+                if( node->Curves().size() == 0 || node->Target() == nullptr) continue; // prevents dumb data becoming part of the equation
                 if (!target) {
                     target = node->Target();
                 }
                 if (node->Target() != target) {
                     FBXImporter::LogWarn("Node target is nullptr type.");
-                }
+                }                
+
                 if (strictMode) {
-                    ai_assert(node->Target() == target);
+                    if(target == nullptr) continue;
                 }
             }
         }
@@ -2705,80 +2707,132 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             ai_assert(curves.size());
 
 #ifdef ASSIMP_BUILD_DEBUG
-            validateAnimCurveNodes(curves, doc.Settings().strictMode);
+            validateAnimCurveNodes(curves, true);
 #endif
-            const AnimationCurveNode* curve_node = NULL;
-            for (const AnimationCurveNode* node : curves) {
-                ai_assert(node);
 
-                if (node->TargetProperty().empty()) {
-                    FBXImporter::LogWarn("target property for animation curve not set: " + node->Name());
-                    continue;
+            for( const AnimationCurveNode* curve : curves)
+            {
+                printf("Curve from fbx: ID %d Name: %s\n", curve->ID(), curve->Name().c_str());
+                
+                const Object *target = curve->Target();
+                printf("Target property: %s\n", curve->TargetProperty().c_str());
+                
+                // I believe that an invalid target could 
+                // still be of use in certain cases so we 
+                // must keep this data for now.
+                if(target == nullptr)
+                {
+                    printf("Invalid node target: %d\n", curve->ID());
+                }
+                else
+                {
+                    printf("Valid node target: %d\n", curve->ID());
                 }
 
-                curve_node = node;
-                if (node->Curves().empty()) {
-                    FBXImporter::LogWarn("no animation curves assigned to AnimationCurveNode: " + node->Name());
-                    continue;
+
+                // std::map<std::string, const AnimationCurve*>
+                // please note this is an std::map
+                AnimationCurveMap map = curve->Curves();
+                AnimationCurveMap::iterator itr;
+
+                for( itr = map.begin(); itr != map.end(); ++itr)
+                {
+                    std::string name = itr->first;
+                    const AnimationCurve* subCurve = itr->second;
+                    printf("Curve name: %s vs sub curve name %s\n", name.c_str(), subCurve->Name().c_str());
+                    subCurve->GetKeys();
                 }
 
-                node_property_map[node->TargetProperty()].push_back(node);
+                
+                // for( const AnimationCurve subCurve : map)
+                // {
+                //     printf("AnimationSubCurve: %s\n", subCurve.Name().c_str());
+                // }
+                
+
+
+                // for( TokenPtr token : curve->SourceElement().Tokens() )
+                // {
+                //     //printf("Token detail: %s\n", token->StringContents().c_str());
+                // }
+
+                //GenerateSimpleNodeAnim(fixed_name, curve->Target(), )
             }
+            // const AnimationCurveNode* curve_node = NULL;
+            // for (const AnimationCurveNode* node : curves) {
 
-            ai_assert(curve_node);
-            ai_assert(curve_node->TargetAsModel());
+            //     if(node->Target() == nullptr) continue;
+                
+            //     ai_assert(node);
 
-            const Model& target = *curve_node->TargetAsModel();
+            //     if (node->TargetProperty().empty()) {
+            //         FBXImporter::LogWarn("target property for animation curve not set: " + node->Name());
+            //         continue;
+            //     }
 
-            // check for all possible transformation components
-            NodeMap::const_iterator chain[TransformationComp_MAXIMUM];
+            //     curve_node = node;
+            //     if (node->Curves().empty()) {
+            //         FBXImporter::LogWarn("no animation curves assigned to AnimationCurveNode: " + node->Name());
+            //         continue;
+            //     }
 
-            bool has_any = false;
+            //     node_property_map[node->TargetProperty()].push_back(node);
+            // }
 
-            for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i) {
-                const TransformationComp comp = static_cast<TransformationComp>(i);
+            // ai_assert(curve_node);
+            // ai_assert(curve_node->TargetAsModel());
 
-                // inverse pivots don't exist in the input, we just generate them
-                if (comp == TransformationComp_RotationPivotInverse || comp == TransformationComp_ScalingPivotInverse) {
-                    chain[i] = node_property_map.end();
-                    continue;
-                }
+            // const Model& target = *curve_node->TargetAsModel();
 
-                chain[i] = node_property_map.find(NameTransformationCompProperty(comp));
-                if (chain[i] != node_property_map.end()) {
+            // // check for all possible transformation components
+            // NodeMap::const_iterator chain[TransformationComp_MAXIMUM];
 
-                    // check if this curves contains redundant information by looking
-                    // up the corresponding node's transformation chain.
-                    if (doc.Settings().optimizeEmptyAnimationCurves &&
-                        IsRedundantAnimationData(target, comp, (*chain[i]).second)) {
+            // bool has_any = false;
 
-                        FBXImporter::LogDebug("dropping redundant animation channel for node " + target.Name());
-                        continue;
-                    }
+            // for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i) {
+            //     const TransformationComp comp = static_cast<TransformationComp>(i);
 
-                    has_any = true;
-                }
-            }
+            //     // inverse pivots don't exist in the input, we just generate them
+            //     if (comp == TransformationComp_RotationPivotInverse || comp == TransformationComp_ScalingPivotInverse) {
+            //         chain[i] = node_property_map.end();
+            //         continue;
+            //     }
 
-            if (!has_any) {
-                FBXImporter::LogWarn("ignoring node animation, did not find any transformation key frames");
-                return;
-            }
+            //     chain[i] = node_property_map.find(NameTransformationCompProperty(comp));
+            //     if (chain[i] != node_property_map.end()) {
 
-            aiNodeAnim* const nd = GenerateSimpleNodeAnim(fixed_name, target, chain,
-                node_property_map.end(),
-                layer_map,
-                start, stop,
-                max_time,
-                min_time);
+            //         // check if this curves contains redundant information by looking
+            //         // up the corresponding node's transformation chain.
+            //         if (doc.Settings().optimizeEmptyAnimationCurves &&
+            //             IsRedundantAnimationData(target, comp, (*chain[i]).second)) {
 
-            ai_assert(nd);
-            if (nd->mNumPositionKeys == 0 && nd->mNumRotationKeys == 0 && nd->mNumScalingKeys == 0) {
-                delete nd;
-            }
-            else {
-                node_anims.push_back(nd);
-            }
+            //             FBXImporter::LogDebug("dropping redundant animation channel for node " + target.Name());
+            //             continue;
+            //         }
+
+            //         has_any = true;
+            //     }
+            // }
+
+            // if (!has_any) {
+            //     FBXImporter::LogWarn("ignoring node animation, did not find any transformation key frames");
+            //     return;
+            // }
+
+            // aiNodeAnim* nd = GenerateSimpleNodeAnim(fixed_name, target, chain,
+            //     node_property_map.end(),
+            //     layer_map,
+            //     start, stop,
+            //     max_time,
+            //     min_time);
+
+            // ai_assert(nd);
+            // if (nd->mNumPositionKeys == 0 && nd->mNumRotationKeys == 0 && nd->mNumScalingKeys == 0) {
+            //     delete nd;
+            // }
+            // else {
+            //     node_anims.push_back(nd);
+            // }
             
         }
 
@@ -2934,7 +2988,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             double& min_time)
 
         {
-            std::unique_ptr<aiNodeAnim> na(new aiNodeAnim());
+            aiNodeAnim * na = new aiNodeAnim();
             na->mNodeName.Set(name);
 
             const PropertyTable& props = target.Props();
@@ -2953,21 +3007,17 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             
             // MAYA PIVOT DATA COMPUTATION
 
-            if (chain[TransformationComp_ScalingPivot] != iter_end) {
-                printf("FOUND PIVOT SCALE KEYFRAMES\n");
-                scaling = GetKeyframeList((*chain[TransformationComp_ScalingPivot]).second, start, stop);
-                printf("Scaling keyframe count: %ld", scaling.size());
-            }
+            // if (chain[TransformationComp_ScalingPivot] != iter_end) {
+            //     printf("FOUND PIVOT SCALE KEYFRAMES\n");
+            //     printf("Scaling keyframe count: %ld", scaling.size());
+            // }
 
-            if (chain[TransformationComp_ScalingOffset] != iter_end) {
-                printf("FOUND PIVOT SCALE OFFSET KEYFRAMES\n");
-                scaling = GetKeyframeList((*chain[TransformationComp_ScalingOffset]).second, start, stop);
-                printf("Scaling keyframe count: %ld", scaling.size());
-            }
+            // if (chain[TransformationComp_ScalingOffset] != iter_end) {
+            //     printf("FOUND PIVOT SCALE OFFSET KEYFRAMES\n");
+            // }
 
             if (chain[TransformationComp_Scaling] != iter_end) {
                 scaling = GetKeyframeList((*chain[TransformationComp_Scaling]).second, start, stop);
-                printf("Scaling keyframe count: %ld", scaling.size());
             }
 
             if (chain[TransformationComp_Translation] != iter_end) {
@@ -2985,10 +3035,12 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
             const KeyTimeList& times = GetKeyTimeList(joined);
 
-            aiQuatKey* out_quat = new aiQuatKey[times.size()];
-            aiVectorKey* out_scale = new aiVectorKey[times.size()];
-            aiVectorKey* out_translation = new aiVectorKey[times.size()];
+            aiQuatKey* out_quat = new aiQuatKey[rotation.size()];
+            aiVectorKey* out_scale = new aiVectorKey[scaling.size()];
+            aiVectorKey* out_translation = new aiVectorKey[translation.size()];
 
+            printf("Times available: ", times.size());
+            
             if (times.size())
             {
                 ConvertTransformOrder_TRStoSRT(out_quat, out_scale, out_translation,
@@ -3007,15 +3059,15 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // XXX remove duplicates / redundant keys which this operation did
             // likely produce if not all three channels were equally dense.
 
-            na->mNumScalingKeys = static_cast<unsigned int>(times.size());
-            na->mNumRotationKeys = na->mNumScalingKeys;
-            na->mNumPositionKeys = na->mNumScalingKeys;
+            na->mNumScalingKeys = static_cast<unsigned int>(scaling.size());
+            na->mNumRotationKeys = static_cast<unsigned int>(rotation.size());
+            na->mNumPositionKeys = static_cast<unsigned int>(translation.size());
 
             na->mScalingKeys = out_scale;
             na->mRotationKeys = out_quat;
             na->mPositionKeys = out_translation;
 
-            return na.get();
+            return na;
         }
 
         FBXConverter::KeyFrameListList FBXConverter::GetKeyframeList(const std::vector<const AnimationCurveNode*>& nodes, int64_t start, int64_t stop)
@@ -3232,31 +3284,13 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             if (rotation.size()) {
                 InterpolateKeys(out_quat, times, rotation, def_rotation, maxTime, minTime, order);
             }
-            else {
-                for (size_t i = 0; i < times.size(); ++i) {
-                    out_quat[i].mTime = CONVERT_FBX_TIME(times[i]) * anim_fps;
-                    out_quat[i].mValue = EulerToQuaternion(def_rotation, order);
-                }
-            }
-
+            
             if (scaling.size()) {
                 InterpolateKeys(out_scale, times, scaling, def_scale, maxTime, minTime);
-            }
-            else {
-                for (size_t i = 0; i < times.size(); ++i) {
-                    out_scale[i].mTime = CONVERT_FBX_TIME(times[i]) * anim_fps;
-                    out_scale[i].mValue = def_scale;
-                }
             }
 
             if (translation.size()) {
                 InterpolateKeys(out_translation, times, translation, def_translate, maxTime, minTime);
-            }
-            else {
-                for (size_t i = 0; i < times.size(); ++i) {
-                    out_translation[i].mTime = CONVERT_FBX_TIME(times[i]) * anim_fps;
-                    out_translation[i].mValue = def_translate;
-                }
             }
 
             const size_t count = times.size();
