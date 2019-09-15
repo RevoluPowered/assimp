@@ -64,6 +64,10 @@ AnimationCurve::AnimationCurve(uint64_t id, const Element& element, const std::s
     const Scope& sc = GetRequiredScope(element);
     const Element& KeyTime = GetRequiredElement(sc,"KeyTime");
     const Element& KeyValueFloat = GetRequiredElement(sc,"KeyValueFloat");
+
+    const std::vector<int64_t> keys;
+    const std::vector<float> values;
+
     // todo: make this into a dictionary somewhere. !important
     ParseVectorDataArray(keys, KeyTime);
     ParseVectorDataArray(values, KeyValueFloat);
@@ -71,6 +75,13 @@ AnimationCurve::AnimationCurve(uint64_t id, const Element& element, const std::s
     if(keys.size() != values.size()) {
         DOMError("the number of key times does not match the number of keyframe values",&KeyTime);
     }
+
+    std::transform(
+        keys.begin(), 
+        keys.end(), 
+        values.begin(), 
+        std::inserter(time_values, time_values.end()));
+
 
     // check if the key times are well-ordered
     if(!std::equal(keys.begin(), keys.end() - 1, keys.begin() + 1, std::less<KeyTimeList::value_type>())) {

@@ -90,6 +90,9 @@ public:
     /**
     *  The different parts that make up the final local transformation of a fbx-node
     */
+
+   
+
     enum TransformationComp {
         TransformationComp_GeometricScalingInverse = 0,
         TransformationComp_GeometricRotationInverse,
@@ -111,6 +114,17 @@ public:
 
         TransformationComp_MAXIMUM
     };
+
+    enum FBX_PROPERTY_TYPE {
+        X_AXIS=0,
+        Y_AXIS,
+        Z_AXIS,
+        Translation,
+        Rotation,
+        Scale,
+        Maximum
+    };
+
 
 public:
     FBXConverter(aiScene* out, const Document& doc, bool removeEmptyBones);

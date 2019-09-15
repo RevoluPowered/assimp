@@ -68,6 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace Assimp {
     namespace FBX {
@@ -2642,8 +2643,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                         for (std::pair<std::string, const AnimationCurve*> curvesIt : node->Curves()) {
                                             if (curvesIt.first == "d|DeformPercent") {
                                                 const AnimationCurve* animationCurve = curvesIt.second;
-                                                const KeyTimeList& keys = animationCurve->GetKeys();
-                                                const KeyValueList& values = animationCurve->GetValues();
+                                                const KeyTimeList& keys = animationCurv
                                                 unsigned int k = 0;
                                                 for (auto key : keys) {
                                                     morphKeyData* keyData;
@@ -2693,6 +2693,28 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
         }
 #endif // ASSIMP_BUILD_DEBUG
 
+
+
+    // can be expanded for other use cases
+    FBXConverter::FBX_PROPERTY_TYPE GetFBXPropertyType(const std::string& property_name )
+    {
+        if(property_name.compare("d|X"))
+        {
+            return FBXConverter::X_AXIS;                           
+        }
+        else if( property_name.compare("d|Y"))
+        {
+            return FBXConverter::Y_AXIS;
+        }
+        else if(property_name.compare("d|Z"))
+        {
+            return FBXConverter::Z_AXIS;          
+        }
+        else if(property_name.compare("Lcl Translation"))
+        {
+            return FBXConverter::Translation;
+        }
+    }
 
         
 
@@ -2759,51 +2781,45 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     std::string subPropertyName = itr->first;
                     const AnimationCurve* subCurve = itr->second;
                     printf("-- SubCurve %s vs sub curve name %s\n", subPropertyName.c_str(), subCurve->Name().c_str());
+                    
+                    // todo make into dict
                     const KeyValueList& value_list = subCurve->GetValues();
-
+                    // subCurve->GetKeys()
                     // filter node
-                    if(property_type == "Lcl Translation")
+                    switch (GetFBXPropertyType(property_type))
                     {
-                        // check for target
-                        if( position_keys[target] != nullptr )
-                        {                            
-                            //aiVectorKey* key = position_keys[target];
-                            for( auto value : value_list )
+                        case Translation:
+                        for( auto value : value_list )
                             {
                                 aiVectorKey key;
                                 key.mTime = 0;
 
-
-                                if( subPropertyName == "d|X")
-                                {                                
-                                    key.mValue.x = value;    
-                                }
-                                else if( subPropertyName == "d|Y")
+                                switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
-                                    key.mValue.x = value;    
-                                }
-                                else if(subPropertyName == "d|Z")
-                                {
-                                    key.mValue.z = value;    
+                                    case X_AXIS:
+                                        key.mValue.x = value;
+                                    break;
+                                    case Y_AXIS:
+                                        key.mValue.x = value;
+                                    break;                                    
+                                    case Z_AXIS:
+                                        key.mValue.x = value;
+                                    break;
                                 }
                             }
-
-
-                            else
-                            {
-                                //printf("Found unsupported key %s, ignoring.");
-                            }
-                            
-                            
-
-
-                        }
-                        else
-                        {
-                            
-                        }
-                        
+                        break;
+                        default:
+                        break;
                     }
+                    // }
+                    // {
+                    //     // // check for target
+                    //     // if( position_keys[target] != nullptr )
+                    //     // {                            
+                    //     //     //aiVectorKey* key = position_keys[target];
+                            
+                    //     // }
+                    // }
 
                     for( int64_t key  : subCurve->GetKeys() )
                     {
@@ -3132,57 +3148,57 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
         FBXConverter::KeyFrameListList FBXConverter::GetKeyframeList(const std::vector<const AnimationCurveNode*>& nodes, int64_t start, int64_t stop)
         {
-            KeyFrameListList inputs;
-            inputs.reserve(nodes.size() * 3);
+            // KeyFrameListList inputs;
+            // inputs.reserve(nodes.size() * 3);
 
-            //give some breathing room for rounding errors
-            int64_t adj_start = start - 10000;
-            int64_t adj_stop = stop + 10000;
+            // //give some breathing room for rounding errors
+            // int64_t adj_start = start - 10000;
+            // int64_t adj_stop = stop + 10000;
 
-            for (const AnimationCurveNode* node : nodes) {
-                ai_assert(node);
+            // for (const AnimationCurveNode* node : nodes) {
+            //     ai_assert(node);
 
-                const AnimationCurveMap& curves = node->Curves();
-                for (const AnimationCurveMap::value_type& kv : curves) {
+            //     const AnimationCurveMap& curves = node->Curves();
+            //     for (const AnimationCurveMap::value_type& kv : curves) {
 
-                    unsigned int mapto;
-                    if (kv.first == "d|X") {
-                        mapto = 0;
-                    }
-                    else if (kv.first == "d|Y") {
-                        mapto = 1;
-                    }
-                    else if (kv.first == "d|Z") {
-                        mapto = 2;
-                    }
-                    else {
-                        FBXImporter::LogWarn("ignoring scale animation curve, did not recognize target component");
-                        continue;
-                    }
+            //         unsigned int mapto;
+            //         if (kv.first == "d|X") {
+            //             mapto = 0;
+            //         }
+            //         else if (kv.first == "d|Y") {
+            //             mapto = 1;
+            //         }
+            //         else if (kv.first == "d|Z") {
+            //             mapto = 2;
+            //         }
+            //         else {
+            //             FBXImporter::LogWarn("ignoring scale animation curve, did not recognize target component");
+            //             continue;
+            //         }
 
-                    const AnimationCurve* const curve = kv.second;
-                    ai_assert(curve->GetKeys().size() == curve->GetValues().size() && curve->GetKeys().size());
+            //         const AnimationCurve* const curve = kv.second;
+            //         ai_assert(curve->GetKeys().size() == curve->GetValues().size() && curve->GetKeys().size());
 
-                    //get values within the start/stop time window
-                    std::shared_ptr<KeyTimeList> Keys(new KeyTimeList());
-                    std::shared_ptr<KeyValueList> Values(new KeyValueList());
-                    const size_t count = curve->GetKeys().size();
-                    Keys->reserve(count);
-                    Values->reserve(count);
-                    for (size_t n = 0; n < count; n++)
-                    {
-                        int64_t k = curve->GetKeys().at(n);
-                        if (k >= adj_start && k <= adj_stop)
-                        {
-                            Keys->push_back(k);
-                            Values->push_back(curve->GetValues().at(n));
-                        }
-                    }
+            //         //get values within the start/stop time window
+            //         std::shared_ptr<KeyTimeList> Keys(new KeyTimeList());
+            //         std::shared_ptr<KeyValueList> Values(new KeyValueList());
+            //         const size_t count = curve->GetKeys().size();
+            //         Keys->reserve(count);
+            //         Values->reserve(count);
+            //         for (size_t n = 0; n < count; n++)
+            //         {
+            //             int64_t k = curve->GetKeys().at(n);
+            //             if (k >= adj_start && k <= adj_stop)
+            //             {
+            //                 Keys->push_back(k);
+            //                 Values->push_back(curve->GetValues().at(n));
+            //             }
+            //         }
 
-                    inputs.push_back(std::make_tuple(Keys, Values, mapto));
-                }
-            }
-            return inputs; // pray for NRVO :-)
+            //         inputs.push_back(std::make_tuple(Keys, Values, mapto));
+            //     }
+            // }
+            // return inputs; // pray for NRVO :-)
         }
 
 
