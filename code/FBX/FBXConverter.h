@@ -325,38 +325,10 @@ private:
         double& max_time,
         double& min_time);
 
-    // ------------------------------------------------------------------------------------------------
-    bool IsRedundantAnimationData(const Model& target,
-        TransformationComp comp,
-        const std::vector<const AnimationCurveNode*>& curves);
-
-    // ------------------------------------------------------------------------------------------------
-    aiNodeAnim* GenerateRotationNodeAnim(const std::string& name,
-        const Model& target,
-        const std::vector<const AnimationCurveNode*>& curves,
-        const LayerMap& layer_map,
-        int64_t start, int64_t stop,
-        double& max_time,
-        double& min_time);
-
-    // ------------------------------------------------------------------------------------------------
-    aiNodeAnim* GenerateScalingNodeAnim(const std::string& name,
-        const Model& /*target*/,
-        const std::vector<const AnimationCurveNode*>& curves,
-        const LayerMap& layer_map,
-        int64_t start, int64_t stop,
-        double& max_time,
-        double& min_time);
-
-    // ------------------------------------------------------------------------------------------------
-    aiNodeAnim* GenerateTranslationNodeAnim(const std::string& name,
-        const Model& /*target*/,
-        const std::vector<const AnimationCurveNode*>& curves,
-        const LayerMap& layer_map,
-        int64_t start, int64_t stop,
-        double& max_time,
-        double& min_time,
-        bool inverse = false);
+    // // ------------------------------------------------------------------------------------------------
+    // bool IsRedundantAnimationData(const Model& target,
+    //     TransformationComp comp,
+    //     const std::vector<const AnimationCurveNode*>& curves);
 
     // ------------------------------------------------------------------------------------------------
     // generate node anim, extracting only Rotation, Scaling and Translation from the given chain
@@ -369,67 +341,10 @@ private:
         double& max_time,
         double& min_time);
 
-    // key (time), value, mapto (component index)
-    typedef std::tuple<std::shared_ptr<KeyTimeList>, std::shared_ptr<KeyValueList>, unsigned int > KeyFrameList;
-    typedef std::vector<KeyFrameList> KeyFrameListList;
-
-    // ------------------------------------------------------------------------------------------------
-    KeyFrameListList GetKeyframeList(const std::vector<const AnimationCurveNode*>& nodes, int64_t start, int64_t stop);
-
-    // ------------------------------------------------------------------------------------------------
-    KeyTimeList GetKeyTimeList(const KeyFrameListList& inputs);
-
-    // ------------------------------------------------------------------------------------------------
-    void InterpolateKeys(aiVectorKey* valOut, const KeyTimeList& keys, const KeyFrameListList& inputs,
-        const aiVector3D& def_value,
-        double& max_time,
-        double& min_time);
-
-    // ------------------------------------------------------------------------------------------------
-    void InterpolateKeys(aiQuatKey* valOut, const KeyTimeList& keys, const KeyFrameListList& inputs,
-        const aiVector3D& def_value,
-        double& maxTime,
-        double& minTime,
-        Model::RotOrder order);
-
-    // ------------------------------------------------------------------------------------------------
-    void ConvertTransformOrder_TRStoSRT(aiQuatKey* out_quat, aiVectorKey* out_scale,
-        aiVectorKey* out_translation,
-        const KeyFrameListList& scaling,
-        const KeyFrameListList& translation,
-        const KeyFrameListList& rotation,
-        const KeyTimeList& times,
-        double& maxTime,
-        double& minTime,
-        Model::RotOrder order,
-        const aiVector3D& def_scale,
-        const aiVector3D& def_translate,
-        const aiVector3D& def_rotation);
-
     // ------------------------------------------------------------------------------------------------
     // euler xyz -> quat
     aiQuaternion EulerToQuaternion(const aiVector3D& rot, Model::RotOrder order);
 
-    // ------------------------------------------------------------------------------------------------
-    void ConvertScaleKeys(aiNodeAnim* na, const std::vector<const AnimationCurveNode*>& nodes, const LayerMap& /*layers*/,
-        int64_t start, int64_t stop,
-        double& maxTime,
-        double& minTime);
-
-    // ------------------------------------------------------------------------------------------------
-    void ConvertTranslationKeys(aiNodeAnim* na, const std::vector<const AnimationCurveNode*>& nodes,
-        const LayerMap& /*layers*/,
-        int64_t start, int64_t stop,
-        double& maxTime,
-        double& minTime);
-
-    // ------------------------------------------------------------------------------------------------
-    void ConvertRotationKeys(aiNodeAnim* na, const std::vector<const AnimationCurveNode*>& nodes,
-        const LayerMap& /*layers*/,
-        int64_t start, int64_t stop,
-        double& maxTime,
-        double& minTime,
-        Model::RotOrder order);
 
     void ConvertGlobalSettings();
 
