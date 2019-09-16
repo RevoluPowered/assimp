@@ -122,7 +122,8 @@ public:
         Translation,
         Rotation,
         Scale,
-        Maximum
+        UNKNOWN,
+        Maximum        
     };
 
 

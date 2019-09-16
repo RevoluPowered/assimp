@@ -2698,24 +2698,37 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
 
     // can be expanded for other use cases
-    FBXConverter::FBX_PROPERTY_TYPE GetFBXPropertyType(const std::string& property_name )
+    FBXConverter::FBX_PROPERTY_TYPE GetFBXPropertyType( const std::string& property_name )
     {
-        if(property_name.compare("d|X"))
+        try
         {
-            return FBXConverter::X_AXIS;                           
+            if(property_name.compare("d|X") == 0)
+            {
+                return FBXConverter::X_AXIS;                           
+            }
+            else if(property_name.compare("d|Y") == 0)
+            {
+                return FBXConverter::Y_AXIS;
+            }
+            else if(property_name.compare("d|Z") == 0)
+            {
+                return FBXConverter::Z_AXIS;          
+            }
+            else if(property_name.compare("Lcl Translation") == 0)
+            {
+                return FBXConverter::Translation;
+            }
+            else if(property_name.compare("Lcl Rotation") == 0)
+            {
+               return FBXConverter::Rotation;
+            }
         }
-        else if( property_name.compare("d|Y"))
+        catch(const std::exception& e)
         {
-            return FBXConverter::Y_AXIS;
+            std::cerr << e.what() << '\n';
         }
-        else if(property_name.compare("d|Z"))
-        {
-            return FBXConverter::Z_AXIS;          
-        }
-        else if(property_name.compare("Lcl Translation"))
-        {
-            return FBXConverter::Translation;
-        }
+        
+        return FBXConverter::UNKNOWN;
     }
 
         
@@ -2786,9 +2799,11 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     
                     // todo make into dict
                     const std::map<int64_t, float>& keyframes = subCurve->GetKeyframeData();
-                    printf("keyframe count: %d\n", keyframes.size());
+                    printf("keyframe count: %ld\n", keyframes.size());
                     // subCurve->GetKeys()
                     // filter node
+
+                    // note target match is wrong.
                     switch (GetFBXPropertyType(property_type))
                     {
                         case Translation:                        
@@ -2798,13 +2813,13 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                 if( position_keys.count( target ) )
                                 {
                                     key = position_keys[target];
-                                    printf("Found pre-existing pos key for target %d\n", target->ID());
+                                    printf("Found pre-existing pos key for target %ld\n", target->ID());
                                 }
                                 else
                                 {
                                     key = new aiVectorKey();
                                     position_keys.insert( std::pair<const Object*, aiVectorKey*>(target, key) );
-                                    printf("Created key for target %d\n", target->ID());
+                                    printf("Created key for target %ld\n", target->ID());
                                 }                                
 
                                 // set key frame time
