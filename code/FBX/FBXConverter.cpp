@@ -69,6 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <chrono>   
 
 namespace Assimp {
     namespace FBX {
@@ -756,6 +757,7 @@ namespace Assimp {
                 aiMatrix4x4::Scaling(Scaling, chain[TransformationComp_Scaling]);
             }
 
+            // use me rotation code
             const aiVector3D& Rotation = PropertyGet<aiVector3D>(props, "Lcl Rotation", ok);
             if (ok && Rotation.SquareLength() > zero_epsilon) {
                 chainBits = chainBits | (1 << TransformationComp_Rotation);
@@ -2606,7 +2608,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
             // for some mysterious reason, mDuration is simply the maximum key -- the
             // validator always assumes animations to start at zero.
-            anim->mDuration = stop_time_fps - start_time_fps;
+            anim->mDuration = 1500;
             anim->mTicksPerSecond = anim_fps;
         }
 
@@ -2758,9 +2760,9 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
             // simple position, scale and rotation keys
             // each will have a target, and if they have any duplicate target they will write to the value of the key.
-            std::map<const Object *, aiVectorKey*> position_keys;
-            std::map<const Object *, aiQuatKey*> rotation_keys;
-            std::map<const Object *, aiVectorKey*> scale_keys;
+            std::map<const int64_t, aiVectorKey*> position_keys;
+            std::map<const int64_t, aiVectorKey*> rotation_keys;
+            std::map<const int64_t, aiVectorKey*> scale_keys;
 
             for( const AnimationCurveNode* curve : curves)
             {
@@ -2807,19 +2809,54 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     switch (GetFBXPropertyType(property_type))
                     {
                         case Translation:                        
-                        for( std::pair<const int64_t, float> keyframe_data : keyframes )
+                            for( std::pair<const int64_t, float> keyframe_data : keyframes )
                             {
                                 aiVectorKey *key;
-                                if( position_keys.count( target ) )
+                                if( position_keys.count( keyframe_data.first ) )
                                 {
-                                    key = position_keys[target];
-                                    printf("Found pre-existing pos key for target %ld\n", target->ID());
+                                    key = position_keys[keyframe_data.first];
+                                    printf("Found pre-existing pos key for sub curve %ld\n", keyframe_data.first);
                                 }
                                 else
                                 {
                                     key = new aiVectorKey();
-                                    position_keys.insert( std::pair<const Object*, aiVectorKey*>(target, key) );
-                                    printf("Created key for target %ld\n", target->ID());
+                                    position_keys.insert( std::pair<const int64_t, aiVectorKey*>(keyframe_data.first, key) );
+                                    printf("Created pos key for sub curve %ld\n", keyframe_data.first);
+                                }                                
+                               
+                                std::chrono::nanoseconds ns (keyframe_data.first);
+                                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
+                                key->mTime = s.count();
+
+                                switch ( GetFBXPropertyType( subPropertyName ) )
+                                {
+                                    case X_AXIS:
+                                        key->mValue.x = keyframe_data.second;
+                                    break;
+                                    case Y_AXIS:
+                                        key->mValue.y = keyframe_data.second;
+                                    break;                                    
+                                    case Z_AXIS:
+                                        key->mValue.z = keyframe_data.second;
+                                    break;
+                                }
+                            }
+                        break;
+                        case Rotation:
+                        for( std::pair<const int64_t, float> keyframe_data : keyframes )
+                            {
+                                aiVectorKey *key;
+                                if( rotation_keys.count( keyframe_data.first ) )
+                                {
+                                    key = rotation_keys[keyframe_data.first];
+                                    printf("Found pre-existing rot key for sub curve %ld\n", keyframe_data.first);
+                                }
+                                else
+                                {
+
+                                    key = new aiVectorKey();
+                                    rotation_keys.insert( std::pair<const int64_t, aiVectorKey*>(keyframe_data.first, key) );
+                                    printf("Created rot key for sub curve %ld\n", keyframe_data.first);
                                 }                                
 
                                 // set key frame time
@@ -2831,10 +2868,45 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                         key->mValue.x = keyframe_data.second;
                                     break;
                                     case Y_AXIS:
-                                        key->mValue.x = keyframe_data.second;
+                                        key->mValue.y = keyframe_data.second;
                                     break;                                    
                                     case Z_AXIS:
+                                        key->mValue.z = keyframe_data.second;
+                                    break;
+                                }
+                            }
+                        break;
+                        case Scale:
+                            for( std::pair<const int64_t, float> keyframe_data : keyframes )
+                            {
+                                aiVectorKey *key;
+                                if( scale_keys.count( keyframe_data.first ) )
+                                {
+                                    key = scale_keys[keyframe_data.first];
+                                    printf("Found pre-existing scale key for sub curve %ld\n", keyframe_data.first);
+                                }
+                                else
+                                {
+                                    key = new aiVectorKey();
+                                    scale_keys.insert( std::pair<const int64_t, aiVectorKey*>(keyframe_data.first, key) );
+                                    printf("Created scale key for sub curve %ld\n", keyframe_data.first);
+                                }                                
+
+
+                                std::chrono::nanoseconds ns (keyframe_data.first);
+                                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
+                                key->mTime = s.count();
+
+                                switch ( GetFBXPropertyType( subPropertyName ) )
+                                {
+                                    case X_AXIS:
                                         key->mValue.x = keyframe_data.second;
+                                    break;
+                                    case Y_AXIS:
+                                        key->mValue.y = keyframe_data.second;
+                                    break;                                    
+                                    case Z_AXIS:
+                                        key->mValue.z = keyframe_data.second;
                                     break;
                                 }
                             }
@@ -2842,105 +2914,77 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                         default:
                         break;
                     }
-                    // }
-                    // {
-                    //     // // check for target
-                    //     // if( position_keys[target] != nullptr )
-                    //     // {                            
-                    //     //     //aiVectorKey* key = position_keys[target];
-                            
-                    //     // }
-                    // }
-
-                    // for( int64_t key  : subCurve->GetKeys() )
-                    // {
-                    //     std::cout << key << ", ";                       
-                    // }
-
                 }
 
-                std::cout << std::endl;
+                std::cout << std::endl;               
 
                 // todo: container which can contain arbitrary keyframe data?
                 // goal: convert FBX data to assimp aiAnimation.
                 // goal: only include what is needed for the animation
             }
-            // const AnimationCurveNode* curve_node = NULL;
-            // for (const AnimationCurveNode* node : curves) {
 
-            //     if(node->Target() == nullptr) continue;
-                
-            //     ai_assert(node);
+            std::map<const int64_t, aiQuatKey*> real_rotation_keys;
+            // goal convert rotation keys into quaternion keys from euler (which is in FBX)
+            for( std::pair<const int64_t, aiVectorKey*> rot_key : rotation_keys)
+            {
+                auto quat_key = new aiQuatKey();
+                quat_key->mValue = EulerToQuaternion(rot_key.second->mValue, Model::RotOrder::RotOrder_EulerXYZ);
+                std::chrono::nanoseconds ns (rot_key.first);
+                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
+                quat_key->mTime = s.count();
+                real_rotation_keys.insert( std::pair<const int64_t, aiQuatKey*> (rot_key.first, quat_key ));  
+                delete rot_key.second; // clear allocation          
+            }
 
-            //     if (node->TargetProperty().empty()) {
-            //         FBXImporter::LogWarn("target property for animation curve not set: " + node->Name());
-            //         continue;
-            //     }
+            // this list is no longer required free it.
+            rotation_keys.clear();
 
-            //     curve_node = node;
-            //     if (node->Curves().empty()) {
-            //         FBXImporter::LogWarn("no animation curves assigned to AnimationCurveNode: " + node->Name());
-            //         continue;
-            //     }
+            aiNodeAnim * nodeAnim = new aiNodeAnim();
+            assert(nodeAnim); // if new fails then we need to report this asap and crash?
+            nodeAnim->mNodeName = fixed_name;
+            nodeAnim->mNumPositionKeys = position_keys.size();
+            nodeAnim->mNumRotationKeys = real_rotation_keys.size();
+            nodeAnim->mNumScalingKeys = scale_keys.size();
 
-            //     node_property_map[node->TargetProperty()].push_back(node);
-            // }
+            /*
+            /* Finalization stage
+             */
 
-            // ai_assert(curve_node);
-            // ai_assert(curve_node->TargetAsModel());
+            nodeAnim->mPositionKeys = new aiVectorKey[nodeAnim->mNumPositionKeys];
+            int ordered_insert = 0;
+            for (std::pair<const int64_t, aiVectorKey*> pos_key : position_keys)
+            {   
+                nodeAnim->mPositionKeys[ordered_insert] = *pos_key.second;
+                ++ordered_insert;
+                delete pos_key.second;
+            }
 
-            // const Model& target = *curve_node->TargetAsModel();
+            nodeAnim->mScalingKeys = new aiVectorKey[nodeAnim->mNumScalingKeys];
+            ordered_insert = 0;
+            for (std::pair<const int64_t, aiVectorKey*> scale_key : scale_keys)
+            {
+                nodeAnim->mScalingKeys[ordered_insert] = *scale_key.second;
+                ++ordered_insert;
+                delete scale_key.second;
+            }
 
-            // // check for all possible transformation components
-            // NodeMap::const_iterator chain[TransformationComp_MAXIMUM];
+            nodeAnim->mRotationKeys = new aiQuatKey[nodeAnim->mNumRotationKeys];
+            ordered_insert = 0;
+            for (std::pair<const int64_t, aiQuatKey*> rot_key : real_rotation_keys)
+            {
+                nodeAnim->mRotationKeys[ordered_insert] = *rot_key.second;
+                ++ordered_insert;
+                delete rot_key.second;
+            }
 
-            // bool has_any = false;
-
-            // for (size_t i = 0; i < TransformationComp_MAXIMUM; ++i) {
-            //     const TransformationComp comp = static_cast<TransformationComp>(i);
-
-            //     // inverse pivots don't exist in the input, we just generate them
-            //     if (comp == TransformationComp_RotationPivotInverse || comp == TransformationComp_ScalingPivotInverse) {
-            //         chain[i] = node_property_map.end();
-            //         continue;
-            //     }
-
-            //     chain[i] = node_property_map.find(NameTransformationCompProperty(comp));
-            //     if (chain[i] != node_property_map.end()) {
-
-            //         // check if this curves contains redundant information by looking
-            //         // up the corresponding node's transformation chain.
-            //         if (doc.Settings().optimizeEmptyAnimationCurves &&
-            //             IsRedundantAnimationData(target, comp, (*chain[i]).second)) {
-
-            //             FBXImporter::LogDebug("dropping redundant animation channel for node " + target.Name());
-            //             continue;
-            //         }
-
-            //         has_any = true;
-            //     }
-            // }
-
-            // if (!has_any) {
-            //     FBXImporter::LogWarn("ignoring node animation, did not find any transformation key frames");
-            //     return;
-            // }
-
-            // aiNodeAnim* nd = GenerateSimpleNodeAnim(fixed_name, target, chain,
-            //     node_property_map.end(),
-            //     layer_map,
-            //     start, stop,
-            //     max_time,
-            //     min_time);
-
-            // ai_assert(nd);
-            // if (nd->mNumPositionKeys == 0 && nd->mNumRotationKeys == 0 && nd->mNumScalingKeys == 0) {
-            //     delete nd;
-            // }
-            // else {
-            //     node_anims.push_back(nd);
-            // }
-            
+            if(real_rotation_keys.size() > 0 || position_keys.size() > 0 || scale_keys.size() > 0)
+            {
+                node_anims.push_back( nodeAnim );
+            }
+            else
+            {
+                delete nodeAnim;
+            }            
         }
 
 
