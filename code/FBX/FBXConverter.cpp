@@ -2786,27 +2786,40 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                     
                     // todo make into dict
                     const std::map<int64_t, float>& keyframes = subCurve->GetKeyframeData();
+                    printf("keyframe count: %d\n", keyframes.size());
                     // subCurve->GetKeys()
                     // filter node
                     switch (GetFBXPropertyType(property_type))
                     {
-                        case Translation:
+                        case Translation:                        
                         for( std::pair<const int64_t, float> keyframe_data : keyframes )
                             {
-                                aiVectorKey key;
+                                aiVectorKey *key;
+                                if( position_keys.count( target ) )
+                                {
+                                    key = position_keys[target];
+                                    printf("Found pre-existing pos key for target %d\n", target->ID());
+                                }
+                                else
+                                {
+                                    key = new aiVectorKey();
+                                    position_keys.insert( std::pair<const Object*, aiVectorKey*>(target, key) );
+                                    printf("Created key for target %d\n", target->ID());
+                                }                                
+
                                 // set key frame time
-                                key.mTime = keyframe_data.first;
+                                key->mTime = keyframe_data.first;
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
                                     case X_AXIS:
-                                        key.mValue.x = keyframe_data.second;
+                                        key->mValue.x = keyframe_data.second;
                                     break;
                                     case Y_AXIS:
-                                        key.mValue.x = keyframe_data.second;
+                                        key->mValue.x = keyframe_data.second;
                                     break;                                    
                                     case Z_AXIS:
-                                        key.mValue.x = keyframe_data.second;
+                                        key->mValue.x = keyframe_data.second;
                                     break;
                                 }
                             }
