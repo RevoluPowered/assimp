@@ -69,7 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <chrono>   
+#include <float.h>
 
 #define FBX_ONE_SECOND 46186158000L
 
@@ -79,10 +79,10 @@ namespace Assimp {
 
         using namespace Util;
 
-#define MAGIC_NODE_TAG "_$AssimpFbx$"
+        #define MAGIC_NODE_TAG "_$AssimpFbx$"
 
-#define CONVERT_FBX_TIME(time) static_cast<double>(time) / 46186158000L
-
+        #define CONVERT_FBX_TIME_TO_SECONDS(time) static_cast<double>(time) / 46186158000L
+        #define CONVERT_FBX_TIME_TO_FRAMES(time, frames_per_second) CONVERT_FBX_TIME_TO_SECONDS(time) * frames_per_second
         FBXConverter::FBXConverter(aiScene* out, const Document& doc, bool removeEmptyBones )
         : defaultMaterialIndex()
         , lights()
@@ -2513,18 +2513,15 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // generate node animations
             std::vector<aiNodeAnim*> node_anims;
 
-            double min_time = 1e10;
-            double max_time = -1e10;
-
             int64_t start_time = st.LocalStart();
             int64_t stop_time = st.LocalStop();
             bool has_local_startstop = start_time != 0 || stop_time != 0;
-            if (!has_local_startstop) {
-                // no time range given, so accept every keyframe and use the actual min/max time
-                // the numbers are INT64_MIN/MAX, the 20000 is for safety because GenerateNodeAnimations uses an epsilon of 10000
-                start_time = -9223372036854775807ll + 20000;
-                stop_time = 9223372036854775807ll - 20000;
-            }
+
+            printf("Has local start stop? %s\n", has_local_startstop ? "yes" : "no" );
+
+            // Goal we need the number of frames passed
+            double start_time_frame_number = has_local_startstop ? (CONVERT_FBX_TIME_TO_SECONDS(start_time) * anim_fps) : 0;
+            double stop_time_frame_number = has_local_startstop ? (CONVERT_FBX_TIME_TO_SECONDS(stop_time) * anim_fps): DBL_MAX;
 
             try {
                 for (const NodeMap::value_type& kv : node_map) {
@@ -2532,9 +2529,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                         kv.first,
                         kv.second,
                         layer_map,
-                        start_time, stop_time,
-                        max_time,
-                        min_time);
+                        start_time_frame_number,
+                        stop_time_frame_number);
                 }
             }
             catch (std::exception&) {
@@ -2567,7 +2563,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                             meshMorphAnim->mKeys[j].mNumValuesAndWeights = numValuesAndWeights;
                             meshMorphAnim->mKeys[j].mValues = new unsigned int[numValuesAndWeights];
                             meshMorphAnim->mKeys[j].mWeights = new double[numValuesAndWeights];
-                            meshMorphAnim->mKeys[j].mTime = CONVERT_FBX_TIME(animIt.first) * anim_fps;
+
+                            meshMorphAnim->mKeys[j].mTime = CONVERT_FBX_TIME_TO_FRAMES(animIt.first, anim_fps);
                             for (unsigned int k = 0; k < numValuesAndWeights; k++) {
                                 meshMorphAnim->mKeys[j].mValues[k] = keyData->values.at(k);
                                 meshMorphAnim->mKeys[j].mWeights[k] = keyData->weights.at(k);
@@ -2586,33 +2583,38 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 return;
             }
 
-            double start_time_fps = has_local_startstop ? (CONVERT_FBX_TIME(start_time) * anim_fps) : min_time;
-            double stop_time_fps = has_local_startstop ? (CONVERT_FBX_TIME(stop_time) * anim_fps) : max_time;
 
-            // adjust relative timing for animation
-            for (unsigned int c = 0; c < anim->mNumChannels; c++) {
-                aiNodeAnim* channel = anim->mChannels[c];
-                for (uint32_t i = 0; i < channel->mNumPositionKeys; i++) {
-                    channel->mPositionKeys[i].mTime -= start_time_fps;
-                }
-                for (uint32_t i = 0; i < channel->mNumRotationKeys; i++) {
-                    channel->mRotationKeys[i].mTime -= start_time_fps;
-                }
-                for (uint32_t i = 0; i < channel->mNumScalingKeys; i++) {
-                    channel->mScalingKeys[i].mTime -= start_time_fps;
-                }
-            }
-            for (unsigned int c = 0; c < anim->mNumMorphMeshChannels; c++) {
-                aiMeshMorphAnim* channel = anim->mMorphMeshChannels[c];
-                for (uint32_t i = 0; i < channel->mNumKeys; i++) {
-                    channel->mKeys[i].mTime -= start_time_fps;
-                }
-            }
+            // // adjust relative timing for animation
+            // for (unsigned int c = 0; c < anim->mNumChannels; c++) {
+            //     aiNodeAnim* channel = anim->mChannels[c];
+            //     for (uint32_t i = 0; i < channel->mNumPositionKeys; i++) {
+            //         channel->mPositionKeys[i].mTime -= start_time_fps;
+            //     }
+            //     for (uint32_t i = 0; i < channel->mNumRotationKeys; i++) {
+            //         channel->mRotationKeys[i].mTime -= start_time_fps;
+            //     }
+            //     for (uint32_t i = 0; i < channel->mNumScalingKeys; i++) {
+            //         channel->mScalingKeys[i].mTime -= start_time_fps;
+            //     }
+            // }
+            // for (unsigned int c = 0; c < anim->mNumMorphMeshChannels; c++) {
+            //     aiMeshMorphAnim* channel = anim->mMorphMeshChannels[c];
+            //     for (uint32_t i = 0; i < channel->mNumKeys; i++) {
+            //         channel->mKeys[i].mTime -= start_time_fps;
+            //     }
+            // }
 
             // for some mysterious reason, mDuration is simply the maximum key -- the
             // validator always assumes animations to start at zero.
-            anim->mDuration = stop_time_fps - start_time_fps;
+            // todo: this is broken
+
+            // Basis use FBX method
+            // anim->mDuration = stop_time - start_time;
+            // anim->mTicksPerSecond = FBX_ONE_SECOND;
+
+            anim->mDuration = (stop_time_frame_number - start_time_frame_number);
             anim->mTicksPerSecond = anim_fps;
+            
         }
 
         // ------------------------------------------------------------------------------------------------
@@ -2727,6 +2729,11 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             {
                return FBXConverter::Rotation;
             }
+            else if(property_name.compare("Lcl Scaling") == 0)
+            {
+                return FBXConverter::Scale;
+            }
+            
         }
         catch(const std::exception& e)
         {
@@ -2743,9 +2750,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             const std::string& fixed_name,
             const std::vector<const AnimationCurveNode*>& curves,
             const LayerMap& layer_map,
-            int64_t start, int64_t stop,
-            double& max_time,
-            double& min_time)
+            double& start_time,
+            double& end_time)
         {
 
             NodeMap node_property_map;
@@ -2756,10 +2762,10 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 #endif
 
             // make new animation to hold this animations keyframes
-            aiNodeAnim * animation = new aiNodeAnim();
-            animation->mNumPositionKeys = 0;
-            animation->mNumRotationKeys = 0;
-            animation->mNumScalingKeys = 0;
+            aiNodeAnim * nodeAnim = new aiNodeAnim();
+            nodeAnim->mNumPositionKeys = 0;
+            nodeAnim->mNumRotationKeys = 0;
+            nodeAnim->mNumScalingKeys = 0;
 
             // simple position, scale and rotation keys
             // each will have a target, and if they have any duplicate target they will write to the value of the key.
@@ -2827,7 +2833,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                     printf("Created pos key for sub curve %ld\n", keyframe_data.first);
                                 }                         
                                
-                                key->mTime = CONVERT_FBX_TIME(keyframe_data.first) * anim_fps;
+                                key->mTime = CONVERT_FBX_TIME_TO_FRAMES(keyframe_data.first, anim_fps);
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
@@ -2858,10 +2864,10 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                     key = new aiVectorKey();
                                     rotation_keys.insert( std::pair<const int64_t, aiVectorKey*>(keyframe_data.first, key) );
                                     printf("Created rot key for sub curve %ld\n", keyframe_data.first);
-                                }                                
+                                }
 
                                 // set key frame time
-                                key->mTime = keyframe_data.first;
+                                key->mTime = CONVERT_FBX_TIME_TO_FRAMES(keyframe_data.first, anim_fps);
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
@@ -2894,7 +2900,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                 }                                
 
 
-                                key->mTime = CONVERT_FBX_TIME(keyframe_data.first) * anim_fps;
+                                key->mTime = CONVERT_FBX_TIME_TO_FRAMES(keyframe_data.first, anim_fps);
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
@@ -2928,8 +2934,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             {
                 auto quat_key = new aiQuatKey();
                 quat_key->mValue = EulerToQuaternion(rot_key.second->mValue, Model::RotOrder::RotOrder_EulerXYZ);
-               
-                quat_key->mTime = CONVERT_FBX_TIME(rot_key.first) * anim_fps;
+                quat_key->mTime = rot_key.second->mTime;
                 real_rotation_keys.insert( std::pair<const int64_t, aiQuatKey*> (rot_key.first, quat_key ));  
                 delete rot_key.second; // clear allocation          
             }
@@ -2937,7 +2942,6 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // this list is no longer required free it.
             rotation_keys.clear();
 
-            aiNodeAnim * nodeAnim = new aiNodeAnim();
             assert(nodeAnim); // if new fails then we need to report this asap and crash?
             nodeAnim->mNodeName = fixed_name;
             nodeAnim->mNumPositionKeys = position_keys.size();
@@ -2952,8 +2956,15 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             int ordered_insert = 0;
             for (std::pair<const int64_t, aiVectorKey*> pos_key : position_keys)
             {   
-                nodeAnim->mPositionKeys[ordered_insert] = *pos_key.second;
-                ++ordered_insert;
+                // why does this happen? 
+                // we need to remove keys the artist purposefully didn't include in the track :)
+                // 120 frame number
+                // 119.001 duration
+                if(end_time <= pos_key.second->mTime)
+                {                
+                    nodeAnim->mPositionKeys[ordered_insert] = *pos_key.second;
+                    ++ordered_insert;
+                }
                 delete pos_key.second;
             }
 
@@ -2961,8 +2972,11 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             ordered_insert = 0;
             for (std::pair<const int64_t, aiVectorKey*> scale_key : scale_keys)
             {
-                nodeAnim->mScalingKeys[ordered_insert] = *scale_key.second;
-                ++ordered_insert;
+                if(end_time <= scale_key.second->mTime)
+                { 
+                    nodeAnim->mScalingKeys[ordered_insert] = *scale_key.second;
+                    ++ordered_insert;
+                }
                 delete scale_key.second;
             }
 
@@ -2970,8 +2984,11 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             ordered_insert = 0;
             for (std::pair<const int64_t, aiQuatKey*> rot_key : real_rotation_keys)
             {
-                nodeAnim->mRotationKeys[ordered_insert] = *rot_key.second;
-                ++ordered_insert;
+                if(end_time <= rot_key.second->mTime)
+                { 
+                    nodeAnim->mRotationKeys[ordered_insert] = *rot_key.second;
+                    ++ordered_insert;
+                }
                 delete rot_key.second;
             }
 
