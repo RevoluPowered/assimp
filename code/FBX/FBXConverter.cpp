@@ -71,6 +71,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <chrono>   
 
+#define FBX_ONE_SECOND 46186158000L
+
+
 namespace Assimp {
     namespace FBX {
 
@@ -2608,7 +2611,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
 
             // for some mysterious reason, mDuration is simply the maximum key -- the
             // validator always assumes animations to start at zero.
-            anim->mDuration = 1500;
+            anim->mDuration = stop_time_fps - start_time_fps;
             anim->mTicksPerSecond = anim_fps;
         }
 
@@ -2822,11 +2825,9 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                     key = new aiVectorKey();
                                     position_keys.insert( std::pair<const int64_t, aiVectorKey*>(keyframe_data.first, key) );
                                     printf("Created pos key for sub curve %ld\n", keyframe_data.first);
-                                }                                
+                                }                         
                                
-                                std::chrono::nanoseconds ns (keyframe_data.first);
-                                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
-                                key->mTime = s.count();
+                                key->mTime = CONVERT_FBX_TIME(keyframe_data.first) * anim_fps;
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
@@ -2893,9 +2894,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                                 }                                
 
 
-                                std::chrono::nanoseconds ns (keyframe_data.first);
-                                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
-                                key->mTime = s.count();
+                                key->mTime = CONVERT_FBX_TIME(keyframe_data.first) * anim_fps;
 
                                 switch ( GetFBXPropertyType( subPropertyName ) )
                                 {
@@ -2929,9 +2928,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             {
                 auto quat_key = new aiQuatKey();
                 quat_key->mValue = EulerToQuaternion(rot_key.second->mValue, Model::RotOrder::RotOrder_EulerXYZ);
-                std::chrono::nanoseconds ns (rot_key.first);
-                std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds> (ns);
-                quat_key->mTime = s.count();
+               
+                quat_key->mTime = CONVERT_FBX_TIME(rot_key.first) * anim_fps;
                 real_rotation_keys.insert( std::pair<const int64_t, aiQuatKey*> (rot_key.first, quat_key ));  
                 delete rot_key.second; // clear allocation          
             }
