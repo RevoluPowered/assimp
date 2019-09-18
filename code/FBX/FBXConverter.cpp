@@ -2612,9 +2612,8 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             // anim->mDuration = stop_time - start_time;
             // anim->mTicksPerSecond = FBX_ONE_SECOND;
 
-            anim->mDuration = (stop_time_frame_number - start_time_frame_number);
+            anim->mDuration = stop_time_frame_number;
             anim->mTicksPerSecond = anim_fps;
-            
         }
 
         // ------------------------------------------------------------------------------------------------
@@ -2960,7 +2959,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 // we need to remove keys the artist purposefully didn't include in the track :)
                 // 120 frame number
                 // 119.001 duration
-                if(end_time <= pos_key.second->mTime)
+                if(pos_key.second->mTime <= end_time )
                 {                
                     nodeAnim->mPositionKeys[ordered_insert] = *pos_key.second;
                     ++ordered_insert;
@@ -2972,7 +2971,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             ordered_insert = 0;
             for (std::pair<const int64_t, aiVectorKey*> scale_key : scale_keys)
             {
-                if(end_time <= scale_key.second->mTime)
+                if( scale_key.second->mTime <= end_time )
                 { 
                     nodeAnim->mScalingKeys[ordered_insert] = *scale_key.second;
                     ++ordered_insert;
@@ -2984,7 +2983,7 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             ordered_insert = 0;
             for (std::pair<const int64_t, aiQuatKey*> rot_key : real_rotation_keys)
             {
-                if(end_time <= rot_key.second->mTime)
+                if(rot_key.second->mTime <= end_time)
                 { 
                     nodeAnim->mRotationKeys[ordered_insert] = *rot_key.second;
                     ++ordered_insert;
