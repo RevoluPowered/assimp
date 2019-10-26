@@ -55,8 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/types.h>
 #include <assimp/aabb.h>
 
-struct aiNode;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -262,7 +260,13 @@ struct aiVertexWeight {
  *  influences on vertices, and a matrix relating the mesh position to the
  *  position of the bone at the time of binding.
  */
+
+
+// forward declaration of aiNode to allow pointer usage
+struct ASSIMP_API aiNode;
+
 struct aiBone {
+
     //! The name of the bone.
     C_STRUCT aiString mName;
 
@@ -271,10 +275,9 @@ struct aiBone {
     unsigned int mNumWeights;
 
     // The bone armature node - used for skeleton conversion
-    aiNode* mArmature;
-
+    C_STRUCT aiNode* mArmature;
     // The bone node in the scene - used for skeleton conversion
-    aiNode* mNode;
+    C_STRUCT aiNode* mNode;
 
     //! The influence weights of this bone, by vertex index.
     C_STRUCT aiVertexWeight* mWeights;
